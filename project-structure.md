@@ -119,12 +119,12 @@ Application/
 
 A use case consists of these files:
 
-| File                      | Purpose                                                       |
-| ------------------------- | ------------------------------------------------------------- |
-| `XxxCommand` / `XxxQuery` | The input (a record)                                          |
+| File                      | Purpose                                                           |
+| ------------------------- | ----------------------------------------------------------------- |
+| `XxxCommand` / `XxxQuery` | The input (a record)                                              |
 | `XxxValidator`            | Checks the shape of the input by calling the Domain value objects |
-| `XxxHandler`              | The steps of the use case                                     |
-| `XxxResponse`             | The data that is returned                                     |
+| `XxxHandler`              | The steps of the use case                                         |
+| `XxxResponse`             | The data that is returned                                         |
 
 Domain objects never leave the Application layer: the handler maps them to a `Response` through the `Mapping/` folder before returning.
 
@@ -194,13 +194,13 @@ HTTP request
 
 ## Current endpoints
 
-| Method | Route                                  | Use case                                    |
-| ------ | -------------------------------------- | ------------------------------------------- |
-| POST   | `/api/authen/register`                 | `RegisterCommand`                           |
-| POST   | `/api/authen/login`                    | `LoginCommand`                              |
-| POST   | `/api/authen/password-reset/request`   | `RequestPasswordResetCommand` (always 202)  |
-| POST   | `/api/authen/password-reset/confirm`   | `ResetPasswordCommand`                      |
-| GET    | `/api/authen/me` (needs a Bearer token) | `GetCurrentUserQuery`                       |
+| Method | Route                                   | Use case                                   |
+| ------ | --------------------------------------- | ------------------------------------------ |
+| POST   | `/api/authen/register`                  | `RegisterCommand`                          |
+| POST   | `/api/authen/login`                     | `LoginCommand`                             |
+| POST   | `/api/authen/password-reset/request`    | `RequestPasswordResetCommand` (always 202) |
+| POST   | `/api/authen/password-reset/confirm`    | `ResetPasswordCommand`                     |
+| GET    | `/api/authen/me` (needs a Bearer token) | `GetCurrentUserQuery`                      |
 
 ## Tests
 

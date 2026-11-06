@@ -32,13 +32,13 @@ Validators in Application only ask those value objects, so each rule exists once
 
 `Features/Authen`: `Register`, `Login`, `ResetPassword` (request + confirm), `GetCurrentUser` (query).
 
-| Method | Route | Use case |
-|---|---|---|
-| POST | `/api/authen/register` | `RegisterCommand` |
-| POST | `/api/authen/login` | `LoginCommand` |
-| POST | `/api/authen/password-reset/request` | `RequestPasswordResetCommand` (always 202) |
-| POST | `/api/authen/password-reset/confirm` | `ResetPasswordCommand` |
-| GET | `/api/authen/me` (Bearer) | `GetCurrentUserQuery` |
+| Method | Route                                | Use case                                   |
+| ------ | ------------------------------------ | ------------------------------------------ |
+| POST   | `/api/authen/register`               | `RegisterCommand`                          |
+| POST   | `/api/authen/login`                  | `LoginCommand`                             |
+| POST   | `/api/authen/password-reset/request` | `RequestPasswordResetCommand` (always 202) |
+| POST   | `/api/authen/password-reset/confirm` | `ResetPasswordCommand`                     |
+| GET    | `/api/authen/me` (Bearer)            | `GetCurrentUserQuery`                      |
 
 To add a feature: put its entities, value objects and repository interfaces in `Domain/<Feature>`, then create `Application/Features/<Feature>/<UseCase>/` with a command or query, an optional `IValidator<T>`, a handler and a response record. Implement the repositories in Infrastructure.
 `AddCqrs` finds handlers and validators by scanning the Application assembly. Then add a controller action that calls `IDispatcher.SendAsync`.
