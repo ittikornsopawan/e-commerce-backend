@@ -1,4 +1,18 @@
+---
+name: E-commerce Backend
+description: Run and develop the independently versioned e-commerce backend; read when opening this Component Repository or configuring its local runtime.
+---
+
 # E-commerce backend (.NET 10)
+
+This is the independent backend Component Repository for the [e-commerce Showcase Project](https://github.com/ittikornsopawan/system-analysis-and-design/tree/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce). It is materialized under `e-commerce/repository/e-commerce-backend/` when used from the Showcase. API contracts, schema specifications, database migrations and system diagrams remain owned by the Showcase.
+
+## Repository provenance
+
+- Source Showcase commit: `48c75ab59f27e915d0bff7acf4395eeaafca330a`.
+- History: the four commits affecting the former `e-commerce/repository/` subtree were retained with `git subtree split`; rewritten commit IDs are specific to this independent repository.
+- Imported tree: all 81 tracked files matched the original snapshot byte for byte before the documentation-only migration updates. Runtime source, tests and project configuration remain unchanged.
+- This is the reproducible legacy Authen implementation, with the known API/specification gaps recorded in [code.md](code.md). A manifest pin does not imply that the latest API specifications are fully implemented.
 
 CQRS, organised by feature. Controllers are the only entry point; infrastructure lives in its own project.
 
@@ -45,7 +59,7 @@ To add a feature: put its entities, value objects and repository interfaces in `
 
 ## Running
 
-Needs the `authen` and `consent` schemas from `e-commerce/db/migrations/up`. Settings that must not be committed come from environment variables:
+Needs the `authen` and `consent` schemas from the [Showcase database migrations](https://github.com/ittikornsopawan/system-analysis-and-design/tree/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/db/migrations/up). Settings that must not be committed come from environment variables:
 
 ```bash
 export Database__ConnectionString="Host=localhost;Port=5432;Database=ecommerce;Username=postgres;Password=..."

@@ -5,14 +5,14 @@ status: draft
 approved_by: null
 approved_at: null
 observed_on: 2026-11-07
-source_revision: bd2fa1cade2a449074198cc53586ff7bb531ebf5
+source_showcase_revision: bd2fa1cade2a449074198cc53586ff7bb531ebf5
 ---
 
 # คู่มือโครงสร้างและการเขียนโค้ด E-commerce Backend
 
 ## 1. ขอบเขตและวิธีอ่านเอกสาร
 
-เอกสารนี้อธิบาย backend ภายใต้ `e-commerce/repository/` จาก source code ที่ตรวจเมื่อวันที่ 7 พฤศจิกายน 2026 พร้อมหลักแบ่งหน้าที่ของ Domain, Application และ Infrastructure เพื่อใช้คุยเรื่อง architecture และเป็นข้อมูลประกอบการ review diagram ในรอบถัดไป
+เอกสารนี้อธิบาย backend ภายใน Component Repository ที่ materialize ใต้ `e-commerce/repository/e-commerce-backend/` จาก source code ที่ตรวจเมื่อวันที่ 7 พฤศจิกายน 2026 พร้อมหลักแบ่งหน้าที่ของ Domain, Application และ Infrastructure เพื่อใช้คุยเรื่อง architecture และเป็นข้อมูลประกอบการ review diagram ในรอบถัดไป
 
 ใช้สถานะต่อไปนี้แยกข้อเท็จจริงกับข้อเสนอ:
 
@@ -22,17 +22,20 @@ source_revision: bd2fa1cade2a449074198cc53586ff7bb531ebf5
 | ช่องว่างที่พบ | โค้ดยังรับผิดชอบไม่ครบ หรือแตกต่างจากเอกสารที่อ้างอิง ต้องระบุสิ่งที่ยังไม่รับประกัน |
 | ข้อเสนอเพื่อ review | แนวทางที่นำมาคุยได้ แต่ยังไม่ใช่ architecture หรือ behavior ที่อนุมัติให้ implement |
 
-เอกสารมีสถานะ draft เพราะมีข้อเสนอด้านความรับผิดชอบและขอบเขตโมเดลรวมอยู่ด้วย การขอให้เขียนคู่มือนี้ไม่ได้เป็นการอนุมัติเปลี่ยน backend, API, schema หรือ architecture ข้อเสนอที่กระทบพฤติกรรมต้องผ่าน governing spec และ approval ตาม [SDD workflow](../../.agents/workflows/spec-driven-development.md) ก่อน implementation
+เอกสารมีสถานะ draft เพราะมีข้อเสนอด้านความรับผิดชอบและขอบเขตโมเดลรวมอยู่ด้วย การขอให้เขียนคู่มือนี้ไม่ได้เป็นการอนุมัติเปลี่ยน backend, API, schema หรือ architecture ข้อเสนอที่กระทบพฤติกรรมต้องผ่าน governing spec และ approval ตาม [SDD workflow](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/.agents/workflows/spec-driven-development.md) ก่อน implementation
 
-`source_revision` ระบุ revision ที่ใช้ตรวจในรอบเขียนเอกสารนี้ ข้อความเกี่ยวกับ implementation อ้างอิง source code ส่วนข้อเปรียบเทียบกับ API specs ต้องอ่านสถานะอนุมัติของแต่ละไฟล์ประกอบ โดย login และ refresh spec ณ วันที่ตรวจมีสถานะ `in-review` และไม่มีผู้อนุมัติใน frontmatter
+`source_showcase_revision` ระบุ Showcase revision ที่ใช้ตรวจในรอบเขียนคู่มือก่อนแยก repository (ไม่ใช่ commit SHA ของ component ที่ถูก split history) ข้อความเกี่ยวกับ implementation อ้างอิง source code ส่วนข้อเปรียบเทียบกับ API specs ต้องอ่านสถานะอนุมัติของแต่ละไฟล์ประกอบ โดย login และ refresh spec ณ วันที่ตรวจมีสถานะ `in-review` และไม่มีผู้อนุมัติใน frontmatter
+
+
+หลัง migration source และ tests อยู่ใน repository นี้ ส่วน API/schema specs และ shared agent resources อยู่ใน Showcase ลิงก์ข้าม repository ในคู่มือชี้ source Showcase snapshot ที่ใช้ย้ายเพื่อให้ตรวจย้อนหลังได้ ส่วน origin และ component baseline ปัจจุบันดูจาก Git และ manifest ของ Showcase
 
 เอกสารที่เกี่ยวข้อง:
 
 - [project-structure.md](project-structure.md): ภาพรวมโครงสร้างและ conventions ที่มีอยู่เดิม
 - [README.md](README.md): วิธีรันและ configuration ของ backend
-- [API specifications](../doc/api/): พฤติกรรม API ที่ออกแบบไว้ ต้องตรวจ approval ของแต่ละ spec
-- [API contract](../api/api-contract.json): contract ที่ต้องเทียบกับ approved spec ก่อนทำ API implementation
-- [Schema specifications](../doc/schema/) และ [migrations](../db/migrations/): โครงสร้างและข้อบังคับข้อมูล
+- [API specifications](https://github.com/ittikornsopawan/system-analysis-and-design/tree/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api): พฤติกรรม API ที่ออกแบบไว้ ต้องตรวจ approval ของแต่ละ spec
+- [API contract](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/api/api-contract.json): contract ที่ต้องเทียบกับ approved spec ก่อนทำ API implementation
+- [Schema specifications](https://github.com/ittikornsopawan/system-analysis-and-design/tree/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/schema) และ [migrations](https://github.com/ittikornsopawan/system-analysis-and-design/tree/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/db/migrations): โครงสร้างและข้อบังคับข้อมูล
 
 ## 2. Architecture ที่มีอยู่จริง
 
@@ -53,7 +56,7 @@ Backend ใช้การแยก layer เป็นห้า C# projects แ�
 ## 3. โครงสร้างไฟล์
 
 ```text
-repository/
+e-commerce-backend/
 ├── Ecommerce.sln
 ├── Directory.Build.props
 ├── README.md
@@ -538,7 +541,7 @@ Query นี้ใช้ repository และ domain model ร่วมกับ
 | Application | กำหนดขั้นตอนเปลี่ยน password/consume/revoke และผลของแต่ละ failure | มี orchestration บางส่วน แต่ boundary/guards ยังไม่ครบ |
 | Infrastructure | รับประกันว่ามี request เดียวที่ consume persisted row สำเร็จ | SQL ปัจจุบันยังไม่มี ACTIVE/expiry guard และไม่คืนผลว่าชนะการแข่งขันหรือไม่ |
 
-ตัวอย่าง shape จาก [create-new-password spec](../doc/api/authen-and-author/04-create-new-password/spec.md) สำหรับคุยเรื่อง guard ไม่ใช่ SQL ที่ backend ปัจจุบันใช้:
+ตัวอย่าง shape จาก [create-new-password spec](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/04-create-new-password/spec.md) สำหรับคุยเรื่อง guard ไม่ใช่ SQL ที่ backend ปัจจุบันใช้:
 
 ```sql
 UPDATE authen.t_user_reset_password
@@ -637,16 +640,16 @@ dotnet test Ecommerce.sln
 | Domain coverage | มี Authen | กฎ Product/Order/Stock/Campaign ใน specs ยังไม่มี backend implementation |
 | Aggregate boundary | User มี marker; password/token ถูกเข้าถึงผ่าน repos แยก | ระบุเจ้าของ invariants ของ credentials, reset และ session |
 | Domain policies | ยังไม่มีคลาสแยก | คัดกฎที่ต้องมี policy จริง โดยไม่สร้าง service เพื่อห่อทุกเงื่อนไข |
-| Login identifier | trim/lower-case และ query หา username/email | [login spec ล่าสุด](../doc/api/authen-and-author/02-login/spec.md) กำหนด exact comparison และ ambiguous-identifier handling |
+| Login identifier | trim/lower-case และ query หา username/email | [login spec ล่าสุด](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/02-login/spec.md) กำหนด exact comparison และ ambiguous-identifier handling |
 | Login failure | inactive account ออก Forbidden | spec ล่าสุดกำหนด generic 401 และบันทึก attempt |
 | Login attempts | ไม่มี attempt repository/handler flow | throttle, identifier serialization, counters และ commit ของ failure attempts |
-| Authorization/session | ไม่มี effective claims resolver; token insert ไม่มี session id | claim associations, current authorization snapshot และ session lifecycle ตาม [login](../doc/api/authen-and-author/02-login/spec.md)/[refresh](../doc/api/authen-and-author/05-refresh-token/spec.md) |
+| Authorization/session | ไม่มี effective claims resolver; token insert ไม่มี session id | claim associations, current authorization snapshot และ session lifecycle ตาม [login](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/02-login/spec.md)/[refresh](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/05-refresh-token/spec.md) |
 | Refresh และ logout | ไม่มี endpoints/handlers | rotation, replay branches และ session-scoped revocation ยังเป็น specification-only |
-| Request reset | ไม่ throttle, ไม่ lock user, ตอบ 202 | เทียบ [request-reset spec](../doc/api/authen-and-author/03-reset-password/spec.md) เรื่องจำนวนคำขอ, response และเวลา |
-| Confirm reset | guard เฉพาะใน memory; ไม่เช็ก user Active/รหัสใหม่ต่างเดิม | atomic consume, lock order และ failure rollback ตาม [create-new-password spec](../doc/api/authen-and-author/04-create-new-password/spec.md) |
+| Request reset | ไม่ throttle, ไม่ lock user, ตอบ 202 | เทียบ [request-reset spec](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/03-reset-password/spec.md) เรื่องจำนวนคำขอ, response และเวลา |
+| Confirm reset | guard เฉพาะใน memory; ไม่เช็ก user Active/รหัสใหม่ต่างเดิม | atomic consume, lock order และ failure rollback ตาม [create-new-password spec](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/04-create-new-password/spec.md) |
 | Revoke enforcement | update token rows แต่ middleware ไม่ lookup rows | ให้ protected calls ปฏิเสธ revoked credentials ได้จริงตาม governing behavior |
-| Register data | DTO มี username/email/password/name/display name | phone/address/default address ตาม [register spec](../doc/api/authen-and-author/01-register/spec.md) ยังไม่ได้ map |
-| Profile/address | มีเพียง `me` response แบบปัจจุบัน | [profile](../doc/api/authen-and-author/07-upsert-user-profile/spec.md)/[profile inquiry](../doc/api/authen-and-author/08-inquiry-user-profile/spec.md)/[address](../doc/api/authen-and-author/09-upsert-user-address/spec.md)/[address inquiry](../doc/api/authen-and-author/10-inquiry-user-address/spec.md) ยังไม่มี implementation ตรงชุดนี้ |
+| Register data | DTO มี username/email/password/name/display name | phone/address/default address ตาม [register spec](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/01-register/spec.md) ยังไม่ได้ map |
+| Profile/address | มีเพียง `me` response แบบปัจจุบัน | [profile](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/07-upsert-user-profile/spec.md)/[profile inquiry](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/08-inquiry-user-profile/spec.md)/[address](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/09-upsert-user-address/spec.md)/[address inquiry](https://github.com/ittikornsopawan/system-analysis-and-design/blob/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce/doc/api/authen-and-author/10-inquiry-user-address/spec.md) ยังไม่มี implementation ตรงชุดนี้ |
 | Value consistency | `PersonName` จำกัด 64 ต่อส่วน, `PasswordCredential` เปิดเผย mutable arrays | เทียบ name constraints กับ governing spec และทบทวน value-object immutability |
 | API contract | routes/DTOs/ProblemDetails ตาม controller ปัจจุบัน | เทียบ approved spec และ published contract โดยไม่ถือว่าเหมือนกันแล้ว |
 | Database compatibility | repositories ใช้ SQL ของ implementation เดิม | ตรวจ schema ล่าสุด เช่นข้อบังคับ session id ก่อนยืนยันว่า backend รันกับ migrations ปัจจุบันได้ |

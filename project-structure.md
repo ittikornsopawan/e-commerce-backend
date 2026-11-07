@@ -1,3 +1,8 @@
+---
+name: E-commerce Backend Project Structure
+description: Explain the existing backend layers, feature conventions and dependencies; read before changing a use case or adding a feature in this Component Repository.
+---
+
 # Project Structure
 
 The e-commerce backend is written in .NET 10 using **CQRS organised by feature**. It is split into 5 projects, one per layer of the code.
@@ -6,7 +11,7 @@ All projects are in `Ecommerce.sln`.
 ## Overview
 
 ```
-repository/
+e-commerce-backend/
 ├── Ecommerce.sln
 ├── Directory.Build.props          Shared settings for every project (net10.0, Nullable, TreatWarningsAsErrors)
 ├── README.md                      How to run, environment variables, security notes
