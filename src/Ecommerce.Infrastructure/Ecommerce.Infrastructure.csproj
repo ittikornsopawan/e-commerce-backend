@@ -17,4 +17,8 @@
   <PropertyGroup>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ecommerce.Infrastructure.Tests" />
+  </ItemGroup>
+
 </Project>

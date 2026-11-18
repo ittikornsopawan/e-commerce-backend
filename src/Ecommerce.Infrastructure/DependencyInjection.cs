@@ -8,6 +8,7 @@ using Ecommerce.Infrastructure.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Ecommerce.Infrastructure.Persistence.Ef;
 using Npgsql;
 
 namespace Ecommerce.Infrastructure;
@@ -28,7 +29,7 @@ public static class DependencyInjection
         services.AddSingleton(security);
         services.TryAddSingleton(TimeProvider.System);
 
-        services.AddSingleton(NpgsqlDataSource.Create(database.ConnectionString));
+        services.AddSingleton(NpgsqlDataSource.Create(EcommerceDbContext.UtcSession(database.ConnectionString)));
         services.AddScoped<DbSession>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
