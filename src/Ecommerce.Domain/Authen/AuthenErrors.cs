@@ -11,7 +11,7 @@ public static class AuthenErrors
         Error.Conflict("Authen.EmailTaken", "This email is already registered.");
 
     public static readonly Error InvalidCredentials =
-        Error.Unauthorized("Authen.InvalidCredentials", "Username or password is incorrect.");
+        Error.Unauthorized("Authen.InvalidCredentials", "Invalid username or password."); // spec 02-login: one answer for every failure
 
     public static readonly Error AccountNotActive =
         Error.Forbidden("Authen.AccountNotActive", "This account is not active.");

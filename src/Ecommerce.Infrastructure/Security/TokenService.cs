@@ -1,5 +1,4 @@
 using System.Buffers.Text;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Ecommerce.Application.Abstractions;
@@ -15,28 +14,38 @@ internal sealed class TokenService(JwtOptions jwt, SecurityOptions security, Tim
     private readonly SigningCredentials _signingCredentials = new(
         new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)), SecurityAlgorithms.HmacSha256);
 
-    public IssuedToken IssueAccessToken(UserId userId, Username username)
+    public TimeSpan AccessTokenLifetime => TimeSpan.FromMinutes(jwt.AccessTokenMinutes);
+
+    public IssuedToken IssueAccessToken(AccessTokenClaims claims)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-        var expires = now.AddMinutes(jwt.AccessTokenMinutes);
+        var expires = now + AccessTokenLifetime;
+        var user = claims.User;
 
         var descriptor = new SecurityTokenDescriptor
         {
             Issuer = jwt.Issuer,
             Audience = jwt.Audience,
             IssuedAt = now,
-            NotBefore = now,
             Expires = expires,
             SigningCredentials = _signingCredentials,
-            Subject = new ClaimsIdentity(
-            [
-                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.UniqueName, username.Value),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            ])
+            Claims = new Dictionary<string, object>
+            {
+                [JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
+                [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
+                ["user"] = new Dictionary<string, object?>
+                {
+                    ["id"] = user.Id.ToString(), ["username"] = user.Username, ["displayName"] = user.DisplayName, ["email"] = user.EmailAddress
+                },
+                ["roles"] = claims.Claims.Roles.ToArray(),
+                ["permissions"] = claims.Claims.Permissions.ToArray(),
+                ["scopes"] = claims.Claims.Scopes.ToArray()
+            }
         };
 
-        return new IssuedToken(new JsonWebTokenHandler().CreateToken(descriptor), expires);
+        // The spec payload has iat and exp but no nbf.
+        var handler = new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false };
+        return new IssuedToken(handler.CreateToken(descriptor), expires);
     }
 
     public IssuedToken IssueRefreshToken() =>

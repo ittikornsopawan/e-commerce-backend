@@ -14,6 +14,17 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
     public DbSet<UserReferralRecord> UserReferrals => Set<UserReferralRecord>();
     public DbSet<ConsentRecord> Consents => Set<ConsentRecord>();
     public DbSet<ConsentTypeRecord> ConsentTypes => Set<ConsentTypeRecord>();
+    public DbSet<LoginAttemptRecord> LoginAttempts => Set<LoginAttemptRecord>();
+    public DbSet<AccessTokenRecord> AccessTokens => Set<AccessTokenRecord>();
+    public DbSet<RefreshTokenRecord> RefreshTokens => Set<RefreshTokenRecord>();
+    public DbSet<RoleRecord> Roles => Set<RoleRecord>();
+    public DbSet<PermissionRecord> Permissions => Set<PermissionRecord>();
+    public DbSet<ScopeRecord> Scopes => Set<ScopeRecord>();
+    public DbSet<PermissionScopeRecord> PermissionScopes => Set<PermissionScopeRecord>();
+    public DbSet<RolePermissionRecord> RolePermissions => Set<RolePermissionRecord>();
+    public DbSet<RolePermissionScopeRecord> RolePermissionScopes => Set<RolePermissionScopeRecord>();
+    public DbSet<UserRoleRecord> UserRoles => Set<UserRoleRecord>();
+    public DbSet<UserPermissionRecord> UserPermissions => Set<UserPermissionRecord>();
 
     public static EcommerceDbContext Create(string connectionString, int commandTimeoutSeconds = 30) =>
         new(Configure(new DbContextOptionsBuilder<EcommerceDbContext>(), connectionString, commandTimeoutSeconds).Options);
@@ -39,6 +50,17 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
         modelBuilder.Entity<UserReferralRecord>().ToTable("l_user_referral", "authen");
         modelBuilder.Entity<ConsentRecord>().ToTable("t_consent", "consent");
         modelBuilder.Entity<ConsentTypeRecord>().ToTable("m_consent_type", "consent");
+        modelBuilder.Entity<LoginAttemptRecord>().ToTable("l_user_login_attempt", "authen");
+        modelBuilder.Entity<AccessTokenRecord>().ToTable("t_user_access_token", "authen");
+        modelBuilder.Entity<RefreshTokenRecord>().ToTable("t_user_refresh_token", "authen");
+        modelBuilder.Entity<RoleRecord>().ToTable("m_role", "author");
+        modelBuilder.Entity<PermissionRecord>().ToTable("m_permission", "author");
+        modelBuilder.Entity<ScopeRecord>().ToTable("m_scope", "author");
+        modelBuilder.Entity<PermissionScopeRecord>().ToTable("t_permission_scope", "author");
+        modelBuilder.Entity<RolePermissionRecord>().ToTable("t_role_permission", "author");
+        modelBuilder.Entity<RolePermissionScopeRecord>().ToTable("t_role_permission_scope", "author");
+        modelBuilder.Entity<UserRoleRecord>().ToTable("t_user_role", "author");
+        modelBuilder.Entity<UserPermissionRecord>().ToTable("t_user_permission", "author");
 
         modelBuilder.Entity<UserRecord>().Property(u => u.CreatedAt).HasDefaultValueSql("NOW()").ValueGeneratedOnAdd();
 
