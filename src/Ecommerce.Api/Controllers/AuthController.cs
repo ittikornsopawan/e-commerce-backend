@@ -3,6 +3,7 @@ using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Authen.Login;
 using Ecommerce.Application.Features.Authen.Register;
+using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -41,6 +42,18 @@ public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
 
         return result.IsSuccess
             ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Logged-in Success", result.Value)
+            : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 03-reset-password: the same 200 for every business outcome, status only.</summary>
+    [EnableRateLimiting(RateLimiting.Strict)]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(RequestPasswordResetBody request, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.SendAsync(new RequestPasswordResetCommand(request.EmailAddress), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess<object>(StatusCodes.Status200OK, "Ok", "If the email address is registered, a reset link has been sent.", null)
             : result.ToFailure(this);
     }
 }

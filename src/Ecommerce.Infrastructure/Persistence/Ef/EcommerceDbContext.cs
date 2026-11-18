@@ -25,6 +25,7 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
     public DbSet<RolePermissionScopeRecord> RolePermissionScopes => Set<RolePermissionScopeRecord>();
     public DbSet<UserRoleRecord> UserRoles => Set<UserRoleRecord>();
     public DbSet<UserPermissionRecord> UserPermissions => Set<UserPermissionRecord>();
+    public DbSet<PasswordResetRecord> PasswordResets => Set<PasswordResetRecord>();
 
     public static EcommerceDbContext Create(string connectionString, int commandTimeoutSeconds = 30) =>
         new(Configure(new DbContextOptionsBuilder<EcommerceDbContext>(), connectionString, commandTimeoutSeconds).Options);
@@ -61,6 +62,7 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
         modelBuilder.Entity<RolePermissionScopeRecord>().ToTable("t_role_permission_scope", "author");
         modelBuilder.Entity<UserRoleRecord>().ToTable("t_user_role", "author");
         modelBuilder.Entity<UserPermissionRecord>().ToTable("t_user_permission", "author");
+        modelBuilder.Entity<PasswordResetRecord>().ToTable("t_user_reset_password", "authen");
 
         modelBuilder.Entity<UserRecord>().Property(u => u.CreatedAt).HasDefaultValueSql("NOW()").ValueGeneratedOnAdd();
 
@@ -69,12 +71,21 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
             foreach (var property in entity.GetProperties())
             {
                 property.SetColumnName(SnakeCase(property.Name));
+                // The columns hold UTC without a time zone; a value read back must be UTC too, or Npgsql refuses to send it again.
+                if (property.ClrType == typeof(DateTime)) property.SetValueConverter(UtcDateTime);
+                if (property.ClrType == typeof(DateTime?)) property.SetValueConverter(UtcNullableDateTime);
             }
 
             // Ids come from the database default (INSERT ... RETURNING id), as in the spec SQL.
             entity.FindPrimaryKey()!.Properties[0].SetDefaultValueSql("GEN_RANDOM_UUID()");
         }
     }
+
+    private static readonly Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime> UtcDateTime =
+        new(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+    private static readonly Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?> UtcNullableDateTime =
+        new(v => v, v => v == null ? v : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc));
 
     private static string SnakeCase(string name) => UpperLetter().Replace(name, "_$1").TrimStart('_').ToLowerInvariant();
 

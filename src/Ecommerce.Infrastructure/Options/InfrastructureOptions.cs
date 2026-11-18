@@ -56,6 +56,14 @@ public sealed class SecurityOptions
 
     public int PasswordResetMinutes { get; init; } = 30;
 
+    /// <summary>Spec 03-reset-password: at most this many resets per user in the window (3 per 60 minutes).</summary>
+    public int PasswordResetMaxRequests { get; init; } = 3;
+
+    public int PasswordResetWindowMinutes { get; init; } = 60;
+
+    /// <summary>The trusted reset page; the raw token is appended. Configuration, never request input.</summary>
+    public string PasswordResetUrl { get; init; } = "https://www.domain.com/reset-password?token=";
+
     /// <summary>Spec 02-login: FAILED attempts in this window count toward the limit of 5.</summary>
     public int LoginFailureWindowMinutes { get; init; } = 15;
 

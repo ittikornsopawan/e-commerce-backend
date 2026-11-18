@@ -47,27 +47,15 @@ public class AuthenHandlerTests
     }
 
     [Fact]
-    public async Task Password_reset_request_sends_mail_only_for_known_emails_but_always_succeeds()
-    {
-        var dispatcher = Dispatcher();
-        SeedUser();
-
-        var known = await dispatcher.SendAsync(new RequestPasswordResetCommand("aof@example.com"));
-        var unknown = await dispatcher.SendAsync(new RequestPasswordResetCommand("nobody@example.com"));
-
-        Assert.True(known.IsSuccess);
-        Assert.True(unknown.IsSuccess);
-        Assert.Equal(["aof@example.com"], _email.Sent);
-    }
-
-    [Fact]
     public async Task Password_reset_replaces_the_password_consumes_the_token_and_revokes_sessions()
     {
         var dispatcher = Dispatcher();
         SeedUser();
-        await dispatcher.SendAsync(new RequestPasswordResetCommand("aof@example.com"));
+        // The request side moved to spec 03-reset-password; this legacy confirm test seeds the token directly.
+        var raw = _tokenService.IssuePasswordResetToken();
+        _tokens.Resets.Add(PasswordResetToken.Issue(_users.Users[0].Id, _tokenService.Hash(raw.Value), raw.ExpiresAtUtc));
 
-        var result = await dispatcher.SendAsync(new ResetPasswordCommand(_tokenService.LastResetToken, "NewPassw0rd"));
+        var result = await dispatcher.SendAsync(new ResetPasswordCommand(raw.Value, "NewPassw0rd"));
 
         Assert.True(result.IsSuccess);
         var user = Assert.Single(_users.Users);
