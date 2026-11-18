@@ -17,7 +17,7 @@ public static class AuthenErrors
         Error.Forbidden("Authen.AccountNotActive", "This account is not active.");
 
     public static readonly Error InvalidResetToken =
-        Error.Validation("Authen.InvalidResetToken", "The reset token is invalid or has expired.");
+        Error.Validation("Authen.InvalidResetToken", "Reset token is invalid or expired."); // spec 04: one answer for every token case
 
     public static readonly Error UserNotFound =
         Error.NotFound("Authen.UserNotFound", "User was not found.");
@@ -37,4 +37,8 @@ public static class AuthenErrors
 
     public static readonly Error RequiredConsentNotAccepted =
         Error.Validation("Authen.RequiredConsent", "All current required consents must be accepted.");
+
+    // Spec 04-create-new-password.
+    public static readonly Error SamePassword =
+        Error.Validation("Authen.SamePassword", "New password must be different from the current password.");
 }

@@ -1,6 +1,7 @@
 using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
+using Ecommerce.Application.Features.Authen.CreateNewPassword;
 using Ecommerce.Application.Features.Authen.Login;
 using Ecommerce.Application.Features.Authen.Register;
 using Ecommerce.Application.Features.Authen.ResetPassword;
@@ -54,6 +55,18 @@ public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
 
         return result.IsSuccess
             ? this.ToSuccess<object>(StatusCodes.Status200OK, "Ok", "If the email address is registered, a reset link has been sent.", null)
+            : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 04-create-new-password: 200 S10000 status only; every token problem is one 400.</summary>
+    [EnableRateLimiting(RateLimiting.Strict)]
+    [HttpPost("create-new-password")]
+    public async Task<IActionResult> CreateNewPassword(CreateNewPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.SendAsync(new CreateNewPasswordCommand(request.ResetToken, request.NewPassword), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess<object>(StatusCodes.Status200OK, "Ok", "Create New Password Success", null)
             : result.ToFailure(this);
     }
 }
