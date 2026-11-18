@@ -3,7 +3,7 @@ name: E-commerce Backend
 description: Run and develop the independently versioned e-commerce backend; read when opening this Component Repository or configuring its local runtime.
 ---
 
-# E-commerce backend (.NET 10)
+# E-commerce backend (.NET 11)
 
 This is the independent backend Component Repository for the [e-commerce Showcase Project](https://github.com/ittikornsopawan/system-analysis-and-design/tree/48c75ab59f27e915d0bff7acf4395eeaafca330a/e-commerce). It is materialized under `e-commerce/repository/e-commerce-backend/` when used from the Showcase. API contracts, schema specifications, database migrations and system diagrams remain owned by the Showcase.
 

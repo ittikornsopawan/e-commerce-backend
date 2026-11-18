@@ -114,7 +114,7 @@ e-commerce-backend/
 
 | Configuration | ค่าปัจจุบัน |
 | --- | --- |
-| Target framework | `net10.0` |
+| Target framework | `net11.0` |
 | Nullable reference types | enabled |
 | Implicit usings | enabled |
 | Treat warnings as errors | enabled |
