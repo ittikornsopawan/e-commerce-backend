@@ -2,7 +2,6 @@ using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Application.Features.Authen.GetCurrentUser;
 using Ecommerce.Application.Features.Authen.Login;
-using Ecommerce.Application.Features.Authen.Register;
 using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
@@ -17,19 +16,6 @@ namespace Ecommerce.Api.Controllers;
 [Route("api/authen")]
 public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 {
-    [EnableRateLimiting(RateLimiting.Strict)]
-    [HttpPost("register")]
-    [ProducesResponseType<RegisterResponse>(StatusCodes.Status201Created)]
-    public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
-    {
-        var result = await dispatcher.SendAsync(
-            new RegisterCommand(
-                request.Username, request.Email, request.Password, request.FirstName, request.LastName, request.DisplayName),
-            cancellationToken);
-
-        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status201Created, "Created", "Register Success", result.Value) : result.ToFailure(this);
-    }
-
     [EnableRateLimiting(RateLimiting.Strict)]
     [HttpPost("login")]
     [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]

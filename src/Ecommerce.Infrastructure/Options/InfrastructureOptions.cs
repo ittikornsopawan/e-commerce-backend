@@ -6,6 +6,9 @@ public sealed class DatabaseOptions
 
     public string ConnectionString { get; init; } = string.Empty;
 
+    /// <summary>A statement slower than this fails, and the use case answers 408 E90001.</summary>
+    public int CommandTimeoutSeconds { get; init; } = 30;
+
     internal void Validate()
     {
         if (string.IsNullOrWhiteSpace(ConnectionString))

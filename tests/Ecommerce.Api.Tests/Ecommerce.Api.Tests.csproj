@@ -17,6 +17,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- One real-PostgreSQL fixture for every test project that needs the database. -->
+    <Compile Include="..\Ecommerce.Infrastructure.Tests\PostgresFixture.cs" Link="Shared\PostgresFixture.cs" />
+    <Compile Include="..\Ecommerce.Infrastructure.Tests\RegistrationFixtures.cs" Link="Shared\RegistrationFixtures.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Ecommerce.Api\Ecommerce.Api.csproj" />
   </ItemGroup>
 

@@ -8,6 +8,8 @@ using Ecommerce.Infrastructure.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Ecommerce.Infrastructure.Persistence.Ef;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Ecommerce.Infrastructure;
@@ -28,7 +30,7 @@ public static class DependencyInjection
         services.AddSingleton(security);
         services.TryAddSingleton(TimeProvider.System);
 
-        services.AddSingleton(NpgsqlDataSource.Create(database.ConnectionString));
+        services.AddSingleton(NpgsqlDataSource.Create(EcommerceDbContext.UtcSession(database.ConnectionString)));
         services.AddScoped<DbSession>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -36,6 +38,11 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IEmailSender, LoggingEmailSender>();
+
+        services.AddDbContext<EcommerceDbContext>(o =>
+            EcommerceDbContext.Configure((DbContextOptionsBuilder<EcommerceDbContext>)o, database.ConnectionString, database.CommandTimeoutSeconds));
+        services.AddScoped<ITransactionRunner, EfTransactionRunner>();
+        services.AddScoped<IRegistrationRepository, RegistrationRepository>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPasswordRepository, PasswordRepository>();
