@@ -32,7 +32,7 @@ internal sealed class FakeUserRepository : IUserRepository
     {
         if (ThrowDuplicateOnAdd)
         {
-            throw new DuplicateKeyException("uq_test");
+            throw new DuplicateKeyException("uq_test", "authen.m_user");
         }
 
         Users.Add(user);

@@ -11,7 +11,8 @@ namespace Ecommerce.Infrastructure.Persistence;
 /// <summary>
 /// <see cref="ITransactionRunner"/> on the scoped <see cref="EcommerceDbContext"/>. Translates PostgreSQL failures into
 /// the domain's exceptions: 23505 unique → <see cref="DuplicateKeyException"/>, 23503 foreign key →
-/// <see cref="MissingReferenceException"/>, a timeout → <see cref="TimeoutException"/>; 40001 reruns the work.
+/// <see cref="MissingReferenceException"/>, a timeout → <see cref="TimeoutException"/>; 40001 reruns the work, and a
+/// 40001 on the last attempt is a <see cref="TimeoutException"/> ("exhaustion follows timeout").
 /// </summary>
 internal sealed class EfTransactionRunner(EcommerceDbContext db) : ITransactionRunner
 {
@@ -52,7 +53,9 @@ internal sealed class EfTransactionRunner(EcommerceDbContext db) : ITransactionR
 
     private static Exception? Translate(Exception exception) => Find<PostgresException>(exception) switch
     {
-        { SqlState: PostgresErrorCodes.UniqueViolation } e => new DuplicateKeyException(e.ConstraintName ?? "", exception),
+        { SqlState: PostgresErrorCodes.UniqueViolation } e => new DuplicateKeyException(e.ConstraintName ?? "", $"{e.SchemaName}.{e.TableName}", exception),
+        // Retries are used up (the catch above reruns earlier attempts): the spec answers it as a timeout.
+        { SqlState: PostgresErrorCodes.SerializationFailure } => new TimeoutException("Serialization conflicts on every attempt.", exception),
         { SqlState: PostgresErrorCodes.ForeignKeyViolation } e => new MissingReferenceException(e.ConstraintName ?? "", exception),
         _ when Find<TimeoutException>(exception) is not null => new TimeoutException("The database did not answer in time.", exception),
         _ => null

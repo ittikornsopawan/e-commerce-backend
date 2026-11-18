@@ -70,7 +70,7 @@ public sealed class RegisterCommandHandlerTests
     [Fact]
     public async Task TC_REG_012_a_concurrent_duplicate_is_the_same_409() 
     {
-        _repository.ThrowOnAdd = new DuplicateKeyException("m_user_username_key");
+        _repository.ThrowOnAdd = new DuplicateKeyException("m_user_username_key", "authen.m_user");
         Assert.Equal(AuthenErrors.IdentifierTaken, (await Handle()).FirstError);
     }
 
@@ -96,5 +96,12 @@ public sealed class RegisterCommandHandlerTests
     {
         _repository.ThrowOnAdd = new InvalidOperationException("boom");
         await Assert.ThrowsAsync<InvalidOperationException>(Handle);
+    }
+
+    [Fact]
+    public async Task TC_REG_022_a_unique_violation_on_a_child_table_is_not_a_409()
+    {
+        _repository.ThrowOnAdd = new DuplicateKeyException("m_user_information_pkey", "authen.m_user_information");
+        await Assert.ThrowsAsync<DuplicateKeyException>(Handle);
     }
 }
