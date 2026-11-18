@@ -41,4 +41,8 @@ public static class AuthenErrors
     // Spec 04-create-new-password.
     public static readonly Error SamePassword =
         Error.Validation("Authen.SamePassword", "New password must be different from the current password.");
+
+    // Spec 05-refresh-token: one answer for every authentication failure.
+    public static readonly Error RefreshTokenInvalid =
+        Error.Unauthorized("Authen.RefreshTokenInvalid", "Invalid or expired refresh token.");
 }
