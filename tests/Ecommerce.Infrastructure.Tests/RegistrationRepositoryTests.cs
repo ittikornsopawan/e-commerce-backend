@@ -256,4 +256,35 @@ public sealed class RegistrationRepositoryTests(PostgresFixture postgres)
         await using var check = EcommerceDbContext.Create(postgres.ConnectionString);
         Assert.False(await check.Users.AnyAsync(u => u.Username == _protector.Protect(registration.Username)));
     }
+
+    [Fact]
+    public async Task TC_REG_025_serialization_conflicts_on_every_attempt_end_as_a_timeout()
+    {
+        var (db, _, runner) = Create();
+        await using var _db = db;
+        var attempts = 0;
+
+        await Assert.ThrowsAsync<TimeoutException>(() => runner.RunAsync<Guid>(IsolationLevel.RepeatableRead, _ =>
+        {
+            attempts++;
+            throw new PostgresException("injected", "ERROR", "ERROR", "40001");
+        }, CancellationToken.None));
+
+        Assert.Equal(3, attempts);
+    }
+
+    [Theory]
+    [InlineData("authen", "m_user", "authen.m_user")]
+    [InlineData("authen", "m_user_information", "authen.m_user_information")]
+    public async Task TC_REG_012_a_unique_violation_names_its_table(string schema, string table, string expected)
+    {
+        var (db, _, runner) = Create();
+        await using var _db = db;
+
+        var error = await Assert.ThrowsAsync<DuplicateKeyException>(() => runner.RunAsync<Guid>(IsolationLevel.RepeatableRead, _ =>
+            throw new PostgresException("injected", "ERROR", "ERROR", "23505", schemaName: schema, tableName: table, constraintName: "x"),
+            CancellationToken.None));
+
+        Assert.Equal(expected, error.Table);
+    }
 }
