@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Domain", "src\Eco
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Domain.Tests", "tests\Ecommerce.Domain.Tests\Ecommerce.Domain.Tests.csproj", "{CAEC00F2-AA14-4676-9EE2-52FF28E6D5A1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecommerce.Api.Tests", "tests\Ecommerce.Api.Tests\Ecommerce.Api.Tests.csproj", "{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,18 @@ Global
 		{CAEC00F2-AA14-4676-9EE2-52FF28E6D5A1}.Release|x64.Build.0 = Release|Any CPU
 		{CAEC00F2-AA14-4676-9EE2-52FF28E6D5A1}.Release|x86.ActiveCfg = Release|Any CPU
 		{CAEC00F2-AA14-4676-9EE2-52FF28E6D5A1}.Release|x86.Build.0 = Release|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Debug|x64.Build.0 = Debug|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Debug|x86.Build.0 = Debug|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Release|x64.ActiveCfg = Release|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Release|x64.Build.0 = Release|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Release|x86.ActiveCfg = Release|Any CPU
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -127,5 +141,6 @@ Global
 		{BA9FF18A-C2DE-4261-899D-D689AF2C8351} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{668D78C2-1A4D-4423-B371-A891486F8B12} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CAEC00F2-AA14-4676-9EE2-52FF28E6D5A1} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{939A92E7-D2A1-4C40-AEFD-8EEFCF04BA8A} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
