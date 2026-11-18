@@ -68,7 +68,7 @@ internal sealed class UserRepository(DbSession session, FieldProtector protector
         }
         catch (PostgresException ex) when (ex.SqlState == UniqueViolation)
         {
-            throw new DuplicateKeyException(ex.ConstraintName ?? string.Empty, ex);
+            throw new DuplicateKeyException(ex.ConstraintName ?? string.Empty, $"{ex.SchemaName}.{ex.TableName}", ex);
         }
     }
 

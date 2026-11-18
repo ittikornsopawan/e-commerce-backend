@@ -47,7 +47,9 @@ public sealed class RegisterCommandHandler(
                 return Result.Success(new RegisterResponse(userId));
             }, cancellationToken);
         }
-        catch (DuplicateKeyException)
+        // Only the identifier constraints of authen.m_user mean "already exists" (sequence: m_user identifier UNIQUE
+        // violation); any other duplicate is unexpected and answers the generic 500.
+        catch (DuplicateKeyException duplicate) when (duplicate.Table == "authen.m_user")
         {
             return AuthenErrors.IdentifierTaken;
         }
