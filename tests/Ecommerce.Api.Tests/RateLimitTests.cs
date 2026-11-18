@@ -17,7 +17,7 @@ public sealed class RateLimitTests(WebApplicationFactory<Program> factory) : ICl
 
     // A body that fails validation, so the handler answers without touching the database.
     private static Task<HttpResponseMessage> Login(HttpClient client) =>
-        client.PostAsJsonAsync("/api/authen/login", new { usernameOrEmail = "", password = "" });
+        client.PostAsJsonAsync("/v1/auth/login", new { usernameOrEmail = "", password = "" });
 
     [Fact]
     public async Task A_public_api_answers_429_E90002_in_the_envelope_with_Retry_After_over_the_limit()
@@ -48,7 +48,7 @@ public sealed class RateLimitTests(WebApplicationFactory<Program> factory) : ICl
         var client = Client(strictPerMinute: 1);
         await Login(client);
 
-        var response = await client.PostAsync("/api/authen/login", new StringContent("{not json", System.Text.Encoding.UTF8, "application/json"));
+        var response = await client.PostAsync("/v1/auth/login", new StringContent("{not json", System.Text.Encoding.UTF8, "application/json"));
 
         // A malformed body is a 400 from model binding; 429 proves the limiter ran before binding.
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);

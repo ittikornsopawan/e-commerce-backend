@@ -1,7 +1,6 @@
 using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Application.Features.Authen.GetCurrentUser;
-using Ecommerce.Application.Features.Authen.Login;
 using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
@@ -16,17 +15,6 @@ namespace Ecommerce.Api.Controllers;
 [Route("api/authen")]
 public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 {
-    [EnableRateLimiting(RateLimiting.Strict)]
-    [HttpPost("login")]
-    [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
-    {
-        var result = await dispatcher.SendAsync(
-            new LoginCommand(request.UsernameOrEmail, request.Password), cancellationToken);
-
-        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Success", result.Value) : result.ToFailure(this);
-    }
-
     /// <summary>Always answers 202, whether or not the email is registered.</summary>
     [EnableRateLimiting(RateLimiting.Strict)]
     [HttpPost("password-reset/request")]

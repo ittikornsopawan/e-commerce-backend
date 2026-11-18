@@ -1,6 +1,7 @@
 using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
+using Ecommerce.Application.Features.Authen.Login;
 using Ecommerce.Application.Features.Authen.Register;
 using Ecommerce.Shared.Cqrs;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,18 @@ public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
 
         return result.IsSuccess
             ? this.ToSuccess(StatusCodes.Status201Created, "Created", "Register Success", result.Value)
+            : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 02-login: 200 S10000 with the token pair; every failure is the same 401 E10002.</summary>
+    [EnableRateLimiting(RateLimiting.Strict)]
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.SendAsync(new LoginCommand(request.Username, request.Password), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Logged-in Success", result.Value)
             : result.ToFailure(this);
     }
 }

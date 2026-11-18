@@ -43,6 +43,8 @@ public static class DependencyInjection
             EcommerceDbContext.Configure((DbContextOptionsBuilder<EcommerceDbContext>)o, database.ConnectionString, database.CommandTimeoutSeconds));
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
         services.AddScoped<IRegistrationRepository, RegistrationRepository>();
+        services.AddScoped<ILoginRepository, LoginRepository>();
+        services.AddSingleton(new LoginSettings(TimeSpan.FromMinutes(security.LoginFailureWindowMinutes)));
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPasswordRepository, PasswordRepository>();

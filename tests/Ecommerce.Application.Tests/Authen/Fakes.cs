@@ -121,8 +121,10 @@ internal sealed class FakeTokenService : ITokenService
     private int _counter;
     public string LastResetToken { get; private set; } = string.Empty;
 
-    public IssuedToken IssueAccessToken(UserId userId, Username username) =>
-        new($"access-{userId}", DateTime.UtcNow.AddMinutes(15));
+    public TimeSpan AccessTokenLifetime => TimeSpan.FromMinutes(15);
+
+    public IssuedToken IssueAccessToken(AccessTokenClaims claims) =>
+        new($"access-{claims.User.Id}-{++_counter}", DateTime.UtcNow.AddMinutes(15));
 
     public IssuedToken IssueRefreshToken() => new($"refresh-{++_counter}", DateTime.UtcNow.AddDays(14));
 

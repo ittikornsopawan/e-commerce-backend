@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace Ecommerce.Infrastructure.Tests;
 
-/// <summary>Test-only rows for the consent and user fixtures of 01-register test-cases.md (raw SQL is allowed in tests).</summary>
+/// <summary>Test-only rows for the fixtures of the authen test-cases.md files (raw SQL is allowed in tests).</summary>
 internal static class RegistrationFixtures
 {
     public static readonly byte[] FieldKey = new byte[32];
@@ -68,5 +68,33 @@ internal static class RegistrationFixtures
         await using var command = new NpgsqlCommand(sql, connection);
         foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
         await command.ExecuteNonQueryAsync();
+    }
+
+    // Author fixtures (02-login claims).
+    public static async Task<Guid> AuthorAsync(string connectionString, string table, string column, string value, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(connectionString,
+            $"INSERT INTO {table} (id, created_by, row_status, {column}, description) VALUES (@id, 'test', @status, @value, 'test')",
+            ("id", id), ("status", rowStatus), ("value", value));
+        return id;
+    }
+
+    public static async Task<Guid> ScopeAsync(string connectionString, string code, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(connectionString,
+            "INSERT INTO author.m_scope (id, created_by, row_status, scope, name, description) VALUES (@id, 'test', @status, @code, @code, 'test')",
+            ("id", id), ("status", rowStatus), ("code", code));
+        return id;
+    }
+
+    public static async Task<Guid> LinkAsync(string connectionString, string table, (string Column, Guid Value) a, (string Column, Guid Value) b, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(connectionString,
+            $"INSERT INTO {table} (id, created_by, row_status, {a.Column}, {b.Column}) VALUES (@id, 'test', @status, @a, @b)",
+            ("id", id), ("status", rowStatus), ("a", a.Value), ("b", b.Value));
+        return id;
     }
 }

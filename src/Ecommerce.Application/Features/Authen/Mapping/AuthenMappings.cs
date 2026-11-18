@@ -1,6 +1,4 @@
-using Ecommerce.Application.Abstractions;
 using Ecommerce.Application.Features.Authen.GetCurrentUser;
-using Ecommerce.Application.Features.Authen.Login;
 using Ecommerce.Domain.Authen.Entities;
 
 namespace Ecommerce.Application.Features.Authen.Mapping;
@@ -20,7 +18,4 @@ internal static class AuthenMappings
             user.Name.Last,
             user.DisplayName.Value,
             user.ProfilePicturePath);
-
-    public static LoginResponse ToLoginResponse(this User user, IssuedToken access, IssuedToken refresh) =>
-        new(user.Id.Value, access.Value, access.ExpiresAtUtc, refresh.Value, refresh.ExpiresAtUtc);
 }

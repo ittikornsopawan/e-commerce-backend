@@ -3,7 +3,6 @@ using Ecommerce.Domain.Authen;
 using Ecommerce.Domain.Authen.Entities;
 using Ecommerce.Domain.Authen.ValueObjects;
 using Ecommerce.Domain.Authen.Repositories;
-using Ecommerce.Application.Features.Authen.Login;
 using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
@@ -45,47 +44,6 @@ public class AuthenHandlerTests
             UserId.New(), Username.Create("Aof").Value, EmailAddress.Create("Aof@Example.com").Value, name, DisplayName.Create(null, name).Value);
         _users.Users.Add(user);
         _passwords.Active[user.Id] = _hasher.Hash("Passw0rdX");
-    }
-
-    [Fact]
-    public async Task Login_issues_and_stores_tokens_for_the_right_password()
-    {
-        var dispatcher = Dispatcher();
-        SeedUser();
-
-        var result = await dispatcher.SendAsync(new LoginCommand("aof@example.com", "Passw0rdX"));
-
-        Assert.True(result.IsSuccess);
-        Assert.Single(_tokens.AccessTokens);
-        Assert.Single(_tokens.RefreshTokens);
-    }
-
-    [Fact]
-    public async Task Login_fails_the_same_way_for_a_wrong_password_and_an_unknown_user()
-    {
-        var dispatcher = Dispatcher();
-        SeedUser();
-
-        var wrongPassword = await dispatcher.SendAsync(new LoginCommand("aof", "WrongPassw0rd"));
-        var calls = _hasher.VerifyCalls;
-        var unknownUser = await dispatcher.SendAsync(new LoginCommand("ghost", "Passw0rdX"));
-
-        Assert.Equal(AuthenErrors.InvalidCredentials, wrongPassword.FirstError);
-        Assert.Equal(AuthenErrors.InvalidCredentials, unknownUser.FirstError);
-        Assert.Equal(calls + 1, _hasher.VerifyCalls); // the unknown user still cost one password check
-        Assert.Empty(_tokens.AccessTokens);
-    }
-
-    [Fact]
-    public async Task Login_refuses_an_inactive_account_after_the_password_check()
-    {
-        var dispatcher = Dispatcher();
-        SeedUser();
-        _users.OverrideStatus = UserStatus.Locked;
-
-        var result = await dispatcher.SendAsync(new LoginCommand("aof", "Passw0rdX"));
-
-        Assert.Equal(AuthenErrors.AccountNotActive, result.FirstError);
     }
 
     [Fact]

@@ -56,6 +56,9 @@ public sealed class SecurityOptions
 
     public int PasswordResetMinutes { get; init; } = 30;
 
+    /// <summary>Spec 02-login: FAILED attempts in this window count toward the limit of 5.</summary>
+    public int LoginFailureWindowMinutes { get; init; } = 15;
+
     internal byte[] DecodeFieldKey()
     {
         try
