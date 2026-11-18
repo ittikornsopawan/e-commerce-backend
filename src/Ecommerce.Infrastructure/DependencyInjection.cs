@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IRegistrationRepository, RegistrationRepository>();
         services.AddScoped<ILoginRepository, LoginRepository>();
         services.AddScoped<IPasswordResetRequestRepository, PasswordResetRequestRepository>();
+        services.AddScoped<ICreateNewPasswordRepository, CreateNewPasswordRepository>();
         services.AddSingleton(new PasswordResetSettings(
             security.PasswordResetMaxRequests, TimeSpan.FromMinutes(security.PasswordResetWindowMinutes),
             TimeSpan.FromMinutes(security.PasswordResetMinutes), security.PasswordResetUrl));

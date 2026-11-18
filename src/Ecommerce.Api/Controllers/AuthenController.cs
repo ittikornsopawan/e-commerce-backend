@@ -1,7 +1,6 @@
 using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Application.Features.Authen.GetCurrentUser;
-using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 using Microsoft.AspNetCore.Authorization;
@@ -15,17 +14,6 @@ namespace Ecommerce.Api.Controllers;
 [Route("api/authen")]
 public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 {
-    [EnableRateLimiting(RateLimiting.Strict)]
-    [HttpPost("password-reset/confirm")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken)
-    {
-        var result = await dispatcher.SendAsync(
-            new ResetPasswordCommand(request.Token, request.NewPassword), cancellationToken);
-
-        return result.IsSuccess ? NoContent() : result.ToFailure(this);
-    }
-
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType<CurrentUserResponse>(StatusCodes.Status200OK)]

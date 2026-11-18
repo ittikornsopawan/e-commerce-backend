@@ -23,6 +23,8 @@ public sealed class UserPasswordRecord
 {
     public Guid Id { get; set; }
     public string CreatedBy { get; set; } = "";
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public string RowStatus { get; set; } = "ACTIVE";
     public string RowType { get; set; } = "PASSWORD";
     public Guid UserId { get; set; }
@@ -114,6 +116,8 @@ public abstract class TokenRecord
 {
     public Guid Id { get; set; }
     public string CreatedBy { get; set; } = "";
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public string RowStatus { get; set; } = "ACTIVE";
     public Guid UserId { get; set; }
     public Guid SessionId { get; set; }
