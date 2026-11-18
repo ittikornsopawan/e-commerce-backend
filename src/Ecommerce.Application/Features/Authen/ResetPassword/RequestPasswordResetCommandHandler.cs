@@ -1,39 +1,57 @@
+using System.Data;
 using Ecommerce.Application.Abstractions;
-using Ecommerce.Domain.Authen.Entities;
+using Ecommerce.Application.Common;
+using Ecommerce.Domain.Authen.Domain;
 using Ecommerce.Domain.Authen.Repositories;
-using Ecommerce.Domain.Authen.ValueObjects;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 
 namespace Ecommerce.Application.Features.Authen.ResetPassword;
 
 /// <summary>
-/// Always succeeds, whether or not the email is registered, so the endpoint cannot be used to find out who has an account.
+/// Orchestrates spec 03-reset-password: prepare the token for every valid request → autocommit lookup → READ COMMITTED
+/// with the user lock and recheck → fresh now → count → refuse or replace → COMMIT → email hand-off. Every business
+/// outcome is the same success; the API answers the generic 200.
 /// </summary>
 public sealed class RequestPasswordResetCommandHandler(
-    IUserRepository users,
-    ITokenRepository tokens,
+    IPasswordResetRequestRepository resets,
     ITokenService tokenService,
     IEmailSender emailSender,
-    IUnitOfWork unitOfWork) : ICommandHandler<RequestPasswordResetCommand>
+    ITransactionRunner transactions,
+    PasswordResetSettings settings,
+    TimeProvider clock) : ICommandHandler<RequestPasswordResetCommand>
 {
     public async Task<Result> HandleAsync(RequestPasswordResetCommand request, CancellationToken cancellationToken)
     {
-        var email = EmailAddress.Create(request.Email).Value;
+        var email = request.EmailAddress!;
+        // The same preparation for every valid request, before the lookup.
+        var token = tokenService.IssuePasswordResetToken().Value;
+        var tokenHash = tokenService.Hash(token);
 
-        var user = await users.FindByEmailAsync(email, cancellationToken);
-        if (user is null || !user.IsActive)
+        try
         {
+            var userId = await resets.FindActiveUserIdAsync(email, cancellationToken);
+            if (userId is null) return Result.Success();
+
+            var issued = await transactions.RunAsync(IsolationLevel.ReadCommitted, async ct =>
+            {
+                if (!await resets.LockActiveUserAsync(userId.Value, email, ct)) return Result.Success(false);
+
+                var now = clock.GetUtcNow().UtcDateTime; // after the user lock
+                if (PasswordResetThrottle.IsRefused(await resets.CountRequestsAsync(userId.Value, now - settings.Window, ct), settings.MaxRequests))
+                    return Result.Success(false);
+
+                await resets.ReplaceActiveResetAsync(userId.Value, tokenHash, now, now + settings.TokenLifetime, ct);
+                return Result.Success(true);
+            }, cancellationToken);
+
+            // After COMMIT only; a delivery problem never changes the answer.
+            if (issued.Value) await emailSender.SendPasswordResetAsync(email, settings.ResetUrl + token, cancellationToken);
             return Result.Success();
         }
-
-        var issued = tokenService.IssuePasswordResetToken();
-        var token = PasswordResetToken.Issue(user.Id, tokenService.Hash(issued.Value), issued.ExpiresAtUtc);
-
-        await unitOfWork.ExecuteInTransactionAsync(ct => tokens.AddPasswordResetAsync(token, ct), cancellationToken);
-
-        await emailSender.SendPasswordResetAsync(user.Email.Value, user.DisplayName.Value, issued.Value, cancellationToken);
-
-        return Result.Success();
+        catch (TimeoutException)
+        {
+            return Result.Failure(CommonErrors.Timeout);
+        }
     }
 }

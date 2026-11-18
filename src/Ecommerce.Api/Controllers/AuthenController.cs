@@ -15,16 +15,6 @@ namespace Ecommerce.Api.Controllers;
 [Route("api/authen")]
 public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 {
-    /// <summary>Always answers 202, whether or not the email is registered.</summary>
-    [EnableRateLimiting(RateLimiting.Strict)]
-    [HttpPost("password-reset/request")]
-    [ProducesResponseType(StatusCodes.Status202Accepted)]
-    public async Task<IActionResult> RequestPasswordReset(RequestPasswordResetRequest request, CancellationToken cancellationToken)
-    {
-        var result = await dispatcher.SendAsync(new RequestPasswordResetCommand(request.Email), cancellationToken);
-        return result.IsSuccess ? Accepted() : result.ToFailure(this);
-    }
-
     [EnableRateLimiting(RateLimiting.Strict)]
     [HttpPost("password-reset/confirm")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

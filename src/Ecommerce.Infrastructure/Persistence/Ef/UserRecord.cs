@@ -194,3 +194,17 @@ public sealed class UserPermissionRecord
     public Guid PermissionId { get; set; }
     public Guid? PermissionScopeId { get; set; }
 }
+
+/// <summary>authen.t_user_reset_password</summary>
+public sealed class PasswordResetRecord
+{
+    public Guid Id { get; set; }
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string RowStatus { get; set; } = "ACTIVE";
+    public Guid UserId { get; set; }
+    public byte[] ResetToken { get; set; } = [];
+    public DateTime ExpiredAt { get; set; }
+}

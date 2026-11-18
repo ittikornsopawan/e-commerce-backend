@@ -139,11 +139,11 @@ internal sealed class FakeTokenService : ITokenService
 
 internal sealed class FakeEmailSender : IEmailSender
 {
-    public List<string> Sent { get; } = [];
+    public List<(string To, string Link)> Sent { get; } = [];
 
-    public Task SendPasswordResetAsync(string toEmail, string displayName, string resetToken, CancellationToken ct)
+    public Task SendPasswordResetAsync(string toEmail, string resetLink, CancellationToken ct)
     {
-        Sent.Add(toEmail);
+        Sent.Add((toEmail, resetLink));
         return Task.CompletedTask;
     }
 }

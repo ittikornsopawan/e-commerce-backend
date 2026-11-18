@@ -44,6 +44,10 @@ public static class DependencyInjection
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
         services.AddScoped<IRegistrationRepository, RegistrationRepository>();
         services.AddScoped<ILoginRepository, LoginRepository>();
+        services.AddScoped<IPasswordResetRequestRepository, PasswordResetRequestRepository>();
+        services.AddSingleton(new PasswordResetSettings(
+            security.PasswordResetMaxRequests, TimeSpan.FromMinutes(security.PasswordResetWindowMinutes),
+            TimeSpan.FromMinutes(security.PasswordResetMinutes), security.PasswordResetUrl));
         services.AddSingleton(new LoginSettings(TimeSpan.FromMinutes(security.LoginFailureWindowMinutes)));
 
         services.AddScoped<IUserRepository, UserRepository>();
