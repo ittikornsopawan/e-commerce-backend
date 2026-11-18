@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Ecommerce.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Ecommerce.Api.Tests" />
   </ItemGroup>
 
 </Project>

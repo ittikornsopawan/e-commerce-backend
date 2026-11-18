@@ -1,0 +1,33 @@
+using Ecommerce.Api.Contracts.Authen;
+using Ecommerce.Api.Extensions;
+using Ecommerce.Api.Security;
+using Ecommerce.Application.Features.Authen.Register;
+using Ecommerce.Shared.Cqrs;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace Ecommerce.Api.Controllers;
+
+/// <summary>v1/auth APIs of the authen-and-author specs.</summary>
+[ApiController]
+[Route("v1/auth")]
+public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
+{
+    /// <summary>Spec 01-register: 201 S10000 with data.userId.</summary>
+    [EnableRateLimiting(RateLimiting.Strict)]
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.SendAsync(
+            new RegisterCommand(
+                request.Username, request.EmailAddress, request.Password, request.FirstName, request.LastName, request.DisplayName,
+                request.ProfilePicturePath, request.PhoneNumber, request.Address, request.DateOfBirth, request.Gender, request.ReferrerId,
+                request.Addresses is { } a ? new RegisterAddressInput(a.Title, a.IsDefault, a.Address, a.City, a.State, a.PostalCode, a.Country) : null,
+                request.Consents?.Select(c => new RegisterConsentInput(c.ConsentId, c.ConsentVersion, c.Result)).ToList()),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess(StatusCodes.Status201Created, "Created", "Register Success", result.Value)
+            : result.ToFailure(this);
+    }
+}

@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
-using Ecommerce.Api.Contracts;
+using Ecommerce.Api.Extensions;
 using Ecommerce.Shared.Results;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -31,14 +31,8 @@ public static class RateLimiting
                     ? Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))
                     : 60;
                 http.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
-                http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-
-                var error = Error.Of("RateLimit.Exceeded", "Too many requests. Try again later.", ErrorType.TooManyRequests, "E90002");
-                var requestId = http.Request.Headers.TryGetValue("requestId", out var id) && !string.IsNullOrWhiteSpace(id)
-                    ? id.ToString()
-                    : $"req-{Guid.NewGuid()}";
-                var now = http.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime;
-                await http.Response.WriteAsJsonAsync(ApiEnvelope.Failure(error, requestId, now), cancellationToken);
+                await HttpEnvelope.WriteFailureAsync(
+                    http, Error.Of("RateLimit.Exceeded", "Too many requests. Try again later.", ErrorType.TooManyRequests, "E90002"), cancellationToken);
             };
         });
     }

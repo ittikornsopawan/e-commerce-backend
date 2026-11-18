@@ -1,7 +1,6 @@
 using Ecommerce.Application.Abstractions;
 using Ecommerce.Application.Features.Authen.GetCurrentUser;
 using Ecommerce.Application.Features.Authen.Login;
-using Ecommerce.Application.Features.Authen.Register;
 using Ecommerce.Domain.Authen.Entities;
 
 namespace Ecommerce.Application.Features.Authen.Mapping;
@@ -12,9 +11,6 @@ namespace Ecommerce.Application.Features.Authen.Mapping;
 /// </summary>
 internal static class AuthenMappings
 {
-    public static RegisterResponse ToRegisterResponse(this User user) =>
-        new(user.Id.Value, user.Username.Value, user.DisplayName.Value);
-
     public static CurrentUserResponse ToCurrentUserResponse(this User user) =>
         new(
             user.Id.Value,

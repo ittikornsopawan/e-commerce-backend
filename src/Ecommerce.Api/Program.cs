@@ -1,5 +1,6 @@
 using System.Text;
 using Ecommerce.Api.Contracts;
+using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application;
 using Ecommerce.Shared.Results;
@@ -11,9 +12,11 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(o => o.Filters.Add<Ecommerce.Api.Filters.RequiredHeadersFilter>())
+    .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = Ecommerce.Api.Filters.InvalidBody.Response);
+builder.Services.AddExceptionHandler<Ecommerce.Api.Filters.EnvelopeExceptionHandler>();
+builder.Services.AddProblemDetails(); // required by UseExceptionHandler; EnvelopeExceptionHandler answers first
 builder.Services.AddOpenApi();
-builder.Services.AddProblemDetails();
 
 builder.Services.AddCqrs(AssemblyReference.Assembly);
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -48,13 +51,7 @@ builder.Services
             OnChallenge = async context =>
             {
                 context.HandleResponse();
-                var error = Error.Unauthorized("Token.Invalid", "Invalid or expired access token.");
-                var requestId = context.Request.Headers.TryGetValue("requestId", out var id) && !string.IsNullOrWhiteSpace(id)
-                    ? id.ToString()
-                    : $"req-{Guid.NewGuid()}";
-                var now = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime;
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsJsonAsync(ApiEnvelope.Failure(error, requestId, now));
+                await HttpEnvelope.WriteFailureAsync(context.HttpContext, Error.Unauthorized("Token.Invalid", "Invalid or expired access token."));
             }
         };
     });

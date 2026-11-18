@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ecommerce.Infrastructure.Persistence.Ef;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Ecommerce.Infrastructure;
@@ -37,6 +38,11 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IEmailSender, LoggingEmailSender>();
+
+        services.AddDbContext<EcommerceDbContext>(o =>
+            EcommerceDbContext.Configure((DbContextOptionsBuilder<EcommerceDbContext>)o, database.ConnectionString, database.CommandTimeoutSeconds));
+        services.AddScoped<ITransactionRunner, EfTransactionRunner>();
+        services.AddScoped<IRegistrationRepository, RegistrationRepository>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPasswordRepository, PasswordRepository>();
