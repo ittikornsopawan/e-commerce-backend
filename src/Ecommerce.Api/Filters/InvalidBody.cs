@@ -41,6 +41,7 @@ public static class InvalidBody
         var text = error.Exception?.Message ?? error.ErrorMessage;
         if (text.Contains("System.Boolean", StringComparison.Ordinal)) return "a boolean";
         if (text.Contains("System.String", StringComparison.Ordinal)) return "a string";
+        if (new[] { "System.Int32", "System.Int64", "System.Decimal", "System.Double" }.Any(t => text.Contains(t, StringComparison.Ordinal))) return "a number";
         if (text.Contains("List`1", StringComparison.Ordinal) || text.Contains("[]", StringComparison.Ordinal)) return "an array";
         return "an object";
     }

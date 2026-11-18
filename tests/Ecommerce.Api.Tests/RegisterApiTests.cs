@@ -291,6 +291,16 @@ public sealed class RegisterApiTests : IClassFixture<WebApplicationFactory<Progr
         await Status(await Send(body), 201, "S10000");
     }
 
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("[]")]
+    [InlineData("\"text\"")]
+    public async Task TC_REG_007_a_body_that_is_not_a_json_object_is_400_alone(string body)
+    {
+        var root = await Status(await Send(body), 400, "E10001", "Request Body must be an object.");
+        Assert.False(root.TryGetProperty("data", out _));
+    }
+
     [Fact]
     public async Task TC_REG_008_consent_item_validation()
     {
