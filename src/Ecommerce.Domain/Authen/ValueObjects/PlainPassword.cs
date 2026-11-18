@@ -18,14 +18,12 @@ public sealed class PlainPassword : ValueObject
 
     public static Result<PlainPassword> Create(string? raw)
     {
-        if (raw is null || raw.Length < MinLength || raw.Length > MaxLength)
+        // One message for every policy failure (spec 01-register "Fail - Bad Request Password").
+        if (raw is null || raw.Length < MinLength || raw.Length > MaxLength
+            || !raw.Any(char.IsUpper) || !raw.Any(char.IsLower) || !raw.Any(char.IsDigit))
         {
-            return Error.Validation("Password.Length", $"Password must be {MinLength}-{MaxLength} characters.");
-        }
-
-        if (!raw.Any(char.IsUpper) || !raw.Any(char.IsLower) || !raw.Any(char.IsDigit))
-        {
-            return Error.Validation("Password.Weak", "Password must contain an upper-case letter, a lower-case letter and a digit.");
+            return Error.Validation("Password.Policy",
+                $"Password must be {MinLength} to {MaxLength} characters and contain an upper-case letter, a lower-case letter and a digit.");
         }
 
         return new PlainPassword(raw);
