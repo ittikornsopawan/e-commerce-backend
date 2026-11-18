@@ -7,7 +7,9 @@ using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 using Microsoft.AspNetCore.Authorization;
+using Ecommerce.Api.Security;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Ecommerce.Api.Controllers;
 
@@ -15,6 +17,7 @@ namespace Ecommerce.Api.Controllers;
 [Route("api/authen")]
 public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 {
+    [EnableRateLimiting(RateLimiting.Strict)]
     [HttpPost("register")]
     [ProducesResponseType<RegisterResponse>(StatusCodes.Status201Created)]
     public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
@@ -27,6 +30,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? this.ToSuccess(StatusCodes.Status201Created, "Created", "Register Success", result.Value) : result.ToFailure(this);
     }
 
+    [EnableRateLimiting(RateLimiting.Strict)]
     [HttpPost("login")]
     [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
@@ -38,6 +42,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
     }
 
     /// <summary>Always answers 202, whether or not the email is registered.</summary>
+    [EnableRateLimiting(RateLimiting.Strict)]
     [HttpPost("password-reset/request")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> RequestPasswordReset(RequestPasswordResetRequest request, CancellationToken cancellationToken)
@@ -46,6 +51,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? Accepted() : result.ToFailure(this);
     }
 
+    [EnableRateLimiting(RateLimiting.Strict)]
     [HttpPost("password-reset/confirm")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken)

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Ecommerce.Api.Contracts;
+using Ecommerce.Api.Security;
 using Ecommerce.Application;
 using Ecommerce.Shared.Results;
 using Ecommerce.Infrastructure;
@@ -60,6 +61,7 @@ builder.Services
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddPublicRateLimits(builder.Configuration);
 
 var app = builder.Build();
 
@@ -70,6 +72,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
