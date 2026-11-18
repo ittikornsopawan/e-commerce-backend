@@ -67,6 +67,9 @@ public sealed class SecurityOptions
     /// <summary>Spec 02-login: FAILED attempts in this window count toward the limit of 5.</summary>
     public int LoginFailureWindowMinutes { get; init; } = 15;
 
+    /// <summary>Spec 05-refresh-token: a consumed refresh token used again within this many seconds is a concurrent duplicate.</summary>
+    public int RefreshReuseGraceSeconds { get; init; } = 10;
+
     internal byte[] DecodeFieldKey()
     {
         try

@@ -3,6 +3,7 @@ using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Authen.CreateNewPassword;
 using Ecommerce.Application.Features.Authen.Login;
+using Ecommerce.Application.Features.Authen.RefreshToken;
 using Ecommerce.Application.Features.Authen.Register;
 using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
@@ -67,6 +68,18 @@ public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
 
         return result.IsSuccess
             ? this.ToSuccess<object>(StatusCodes.Status200OK, "Ok", "Create New Password Success", null)
+            : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 05-refresh-token: 200 S10000 with a fresh pair in the same session; every failure is one 401.</summary>
+    [EnableRateLimiting(RateLimiting.Standard)]
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.SendAsync(new RefreshTokenCommand(request.RefreshAccessToken), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Refresh Token Success", result.Value)
             : result.ToFailure(this);
     }
 }

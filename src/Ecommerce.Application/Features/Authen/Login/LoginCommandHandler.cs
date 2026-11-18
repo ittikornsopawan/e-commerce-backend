@@ -1,6 +1,7 @@
 using System.Data;
 using Ecommerce.Application.Abstractions;
 using Ecommerce.Application.Common;
+using Ecommerce.Application.Features.Authen.Common;
 using Ecommerce.Domain.Authen;
 using Ecommerce.Domain.Authen.Domain;
 using Ecommerce.Domain.Authen.Repositories;
@@ -20,12 +21,12 @@ public sealed class LoginCommandHandler(
     ITokenService tokenService,
     ITransactionRunner transactions,
     LoginSettings settings,
-    TimeProvider clock) : ICommandHandler<LoginCommand, LoginResponse>
+    TimeProvider clock) : ICommandHandler<LoginCommand, TokenPairResponse>
 {
     // Verified when there is no user or no password, so those cases cost one password check too.
     private static readonly PasswordCredential Decoy = new(new byte[32], new byte[16]);
 
-    public async Task<Result<LoginResponse>> HandleAsync(LoginCommand request, CancellationToken cancellationToken)
+    public async Task<Result<TokenPairResponse>> HandleAsync(LoginCommand request, CancellationToken cancellationToken)
     {
         var identifier = request.Username!;
         var password = request.Password!;
@@ -41,9 +42,7 @@ public sealed class LoginCommandHandler(
                 return Result.Success(tokens);
             }, cancellationToken);
 
-            return outcome.Value is { } issued
-                ? new LoginResponse("Bearer", issued.Access.Value, issued.Refresh.Value, (int)tokenService.AccessTokenLifetime.TotalSeconds)
-                : AuthenErrors.InvalidCredentials;
+            return outcome.Value is { } issued ? issued : AuthenErrors.InvalidCredentials;
         }
         catch (TimeoutException)
         {
@@ -51,9 +50,7 @@ public sealed class LoginCommandHandler(
         }
     }
 
-    private sealed record IssuedPair(IssuedToken Access, IssuedToken Refresh);
-
-    private async Task<IssuedPair?> AttemptAsync(string identifier, string password, DateTime now, CancellationToken ct)
+    private async Task<TokenPairResponse?> AttemptAsync(string identifier, string password, DateTime now, CancellationToken ct)
     {
         if (LoginThrottle.IsRefused(await logins.CountRecentFailuresAsync(identifier, now - settings.FailureWindow, ct)))
         {
@@ -77,15 +74,8 @@ public sealed class LoginCommandHandler(
             return null;
         }
 
-        var facts = await logins.GetAuthorizationFactsAsync(user.Id, ct);
-        var scopes = await logins.GetActiveScopesAsync(AuthorizationClaims.AssignedScopeIds(facts), ct);
-        var claims = AuthorizationClaims.Resolve(facts, scopes);
-
-        var access = tokenService.IssueAccessToken(new AccessTokenClaims(user, claims));
-        var refresh = tokenService.IssueRefreshToken();
-        await logins.AddSessionTokensAsync(new LoginSession(
-            user.Id, Guid.NewGuid(), tokenService.Hash(access.Value), access.ExpiresAtUtc, tokenService.Hash(refresh.Value), refresh.ExpiresAtUtc), ct);
+        var pair = await new SessionTokens(logins, tokenService).IssueAsync(user, Guid.NewGuid(), ct); // a new session per login
         await logins.RecordAttemptAsync(identifier, user.Id, LoginResult.Success, now, ct);
-        return new IssuedPair(access, refresh);
+        return pair;
     }
 }

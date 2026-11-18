@@ -29,3 +29,6 @@ public interface ITokenService
 
 /// <summary>The brute-force window of spec 02-login (15 minutes by default, configurable).</summary>
 public sealed record LoginSettings(TimeSpan FailureWindow);
+
+/// <summary>Spec 05-refresh-token: a consumed token used again within this window is a concurrent duplicate (10 seconds).</summary>
+public sealed record RefreshSettings(TimeSpan ReuseGrace);

@@ -1,5 +1,6 @@
 using System.Data;
 using Ecommerce.Application.Abstractions;
+using Ecommerce.Application.Features.Authen.Common;
 using Ecommerce.Application.Features.Authen.Login;
 using Ecommerce.Domain.Authen;
 using Ecommerce.Domain.Authen.Repositories;
@@ -57,7 +58,7 @@ public sealed class LoginCommandHandlerTests
     private readonly FakePasswordHasher _hasher = new();
     private static readonly LoginUser User = new(Guid.NewGuid(), "john", "john@example.test", null);
 
-    private Task<Result<LoginResponse>> Login(string password = "Passw0rd-Example") =>
+    private Task<Result<TokenPairResponse>> Login(string password = "Passw0rd-Example") =>
         new LoginCommandHandler(_repository, _hasher, new FakeTokenService(), _runner, new LoginSettings(TimeSpan.FromMinutes(15)), TimeProvider.System)
             .HandleAsync(new LoginCommand("john", password), CancellationToken.None);
 
