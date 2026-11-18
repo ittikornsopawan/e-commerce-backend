@@ -29,6 +29,8 @@ public sealed class ApiEnvelopeTests
     [InlineData(ErrorType.Forbidden, 403, "Forbidden", "E10009")]
     [InlineData(ErrorType.NotFound, 404, "Not Found", "E10004")]
     [InlineData(ErrorType.Conflict, 409, "Conflict", "E10003")]
+    [InlineData(ErrorType.Timeout, 408, "Request Timeout", "E90001")]
+    [InlineData(ErrorType.TooManyRequests, 429, "Too Many Requests", "E90002")]
     public void Failure_maps_the_error_type_to_one_http_status_and_bizCode(
         ErrorType type, int http, string message, string bizCode)
     {
@@ -53,6 +55,22 @@ public sealed class ApiEnvelopeTests
 
         Assert.Equal(bizCode, envelope.Status.BizCode);
         Assert.Equal(http, envelope.Status.Code);
+    }
+
+    [Theory]
+    [InlineData(ErrorType.Conflict, "E10005")]
+    [InlineData(ErrorType.NotFound, "E10006")]
+    [InlineData(ErrorType.Validation, "E10004")]
+    [InlineData(ErrorType.Failure, "E90001")]
+    public void An_explicit_bizCode_on_the_wrong_error_type_is_rejected(ErrorType type, string bizCode)
+    {
+        Assert.Throws<ArgumentException>(() => Error.Of("X", "d", type, bizCode));
+    }
+
+    [Fact]
+    public void Success_message_is_Ok_as_in_every_spec()
+    {
+        Assert.Equal("Ok", ApiEnvelope.Success(200, "Ok", "Success", "r", Now, (object?)null).Status.Message);
     }
 
     [Fact]

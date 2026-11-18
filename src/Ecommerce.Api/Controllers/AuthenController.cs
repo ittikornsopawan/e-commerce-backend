@@ -34,7 +34,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
         var result = await dispatcher.SendAsync(
             new LoginCommand(request.UsernameOrEmail, request.Password), cancellationToken);
 
-        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "OK", "Success", result.Value) : result.ToFailure(this);
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Success", result.Value) : result.ToFailure(this);
     }
 
     /// <summary>Always answers 202, whether or not the email is registered.</summary>
@@ -68,6 +68,6 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
         }
 
         var result = await dispatcher.SendAsync(new GetCurrentUserQuery(userId), cancellationToken);
-        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "OK", "Success", result.Value) : result.ToFailure(this);
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Success", result.Value) : result.ToFailure(this);
     }
 }
