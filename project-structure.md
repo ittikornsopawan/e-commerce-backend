@@ -5,7 +5,7 @@ description: Explain the existing backend layers, feature conventions and depend
 
 # Project Structure
 
-The e-commerce backend is written in .NET 10 using **CQRS organised by feature**. It is split into 5 projects, one per layer of the code.
+The e-commerce backend is written in .NET 11 using **CQRS organised by feature**. It is split into 5 projects, one per layer of the code.
 All projects are in `Ecommerce.sln`.
 
 ## Overview
@@ -13,7 +13,7 @@ All projects are in `Ecommerce.sln`.
 ```
 e-commerce-backend/
 ├── Ecommerce.sln
-├── Directory.Build.props          Shared settings for every project (net10.0, Nullable, TreatWarningsAsErrors)
+├── Directory.Build.props          Shared settings for every project (net11.0, Nullable, TreatWarningsAsErrors)
 ├── README.md                      How to run, environment variables, security notes
 ├── project-structure.md           This file
 ├── src/
