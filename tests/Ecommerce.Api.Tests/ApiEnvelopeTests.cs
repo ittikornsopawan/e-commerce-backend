@@ -1,10 +1,13 @@
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 using Ecommerce.Api.Contracts;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Ecommerce.Shared.Results;
 
 namespace Ecommerce.Api.Tests;
 
 // Spec: api-conventions.md "Error codes" and the response examples of 01-register (status object).
-public sealed class ApiEnvelopeTests
+public sealed class ApiEnvelopeTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
     private static readonly DateTime Now = new(2026, 11, 5, 12, 42, 0, 123, DateTimeKind.Utc);
 
@@ -81,5 +84,41 @@ public sealed class ApiEnvelopeTests
         Assert.Equal(500, envelope.Status.Code);
         Assert.Null(envelope.Status.BizCode);
         Assert.Equal("An unexpected error occurred.", envelope.Status.BizMessage);
+    }
+
+    // 26 specs show nulls explicitly in data ("updatedAt": null), so null must never be dropped globally.
+    // The real serializer options of both pipelines are used, so a global WhenWritingNull is caught.
+    [Fact]
+    public void A_null_property_of_the_data_is_still_written_as_null_by_the_app_serializers()
+    {
+        var app = factory.WithWebHostBuilder(b => b
+            .UseSetting("Database:ConnectionString", "Host=127.0.0.1;Port=1;Database=x")
+            .UseSetting("Jwt:SigningKey", "unit-test-signing-key-0123456789-abcdef")
+            .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(new byte[32])));
+        var envelope = ApiEnvelope.Success(200, "Ok", "Success", "r", Now, new { updatedAt = (string?)null });
+
+        var mvc = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>().Value.JsonSerializerOptions;
+        var http = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>().Value.SerializerOptions;
+
+        foreach (var options in new[] { mvc, http })
+        {
+            using var json = JsonDocument.Parse(JsonSerializer.Serialize(envelope, options));
+            Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("data").GetProperty("updatedAt").ValueKind);
+        }
+    }
+
+    [Fact]
+    public void A_failure_has_no_data_and_a_500_has_no_bizCode_in_the_json()
+    {
+        var app = factory.WithWebHostBuilder(b => b
+            .UseSetting("Database:ConnectionString", "Host=127.0.0.1;Port=1;Database=x")
+            .UseSetting("Jwt:SigningKey", "unit-test-signing-key-0123456789-abcdef")
+            .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(new byte[32])));
+        var options = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>().Value.SerializerOptions;
+
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(ApiEnvelope.Failure(Error.Failure("Boom", "x"), "r", Now), options));
+
+        Assert.False(json.RootElement.TryGetProperty("data", out _));
+        Assert.False(json.RootElement.GetProperty("status").TryGetProperty("bizCode", out _));
     }
 }
