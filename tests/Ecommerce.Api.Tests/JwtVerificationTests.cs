@@ -68,7 +68,7 @@ public sealed class JwtVerificationTests(WebApplicationFactory<Program> factory)
     public async Task A_valid_token_passes_verification()
     {
         var client = Client();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token());
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token(roles: ["CUSTOMER"]));
 
         var response = await client.GetAsync("/api/authen/me");
 

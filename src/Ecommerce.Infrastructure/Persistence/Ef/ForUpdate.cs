@@ -8,7 +8,8 @@ namespace Ecommerce.Infrastructure.Persistence.Ef;
 /// Pessimistic row lock for a LINQ query: <c>query.ForUpdate()</c> makes the SELECT end in FOR UPDATE, the lock the
 /// specs take (caller user first, then target rows by id). EF Core has no such operator, so the query is tagged and
 /// <see cref="ForUpdateInterceptor"/> completes the statement; callers never write SQL.
-/// Use it inside a transaction: outside one the lock is released at once.
+/// Use it inside a transaction: outside one the lock is released at once. It appends to the end of the statement,
+/// so never use it on a query EF splits or on one with an aggregate.
 /// </summary>
 public static class ForUpdateExtensions
 {

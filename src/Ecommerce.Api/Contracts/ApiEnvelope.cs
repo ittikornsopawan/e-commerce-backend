@@ -1,13 +1,15 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using Ecommerce.Shared.Results;
 
 namespace Ecommerce.Api.Contracts;
 
 /// <summary>The <c>status</c> object of every API response (api-conventions.md, response examples of the specs).</summary>
+// Only these two are omitted when null (a 500 has no bizCode, an error has no data); nulls inside data stay (26 specs show them).
 public sealed record ApiStatus(
-    int Code, string Message, string? BizCode, string BizMessage, string RequestId, string Timestamp, string Status);
+    int Code, string Message, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? BizCode, string BizMessage, string RequestId, string Timestamp, string Status);
 
-public sealed record ApiEnvelope<T>(ApiStatus Status, T? Data);
+public sealed record ApiEnvelope<T>(ApiStatus Status, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] T? Data);
 
 public static class ApiEnvelope
 {
