@@ -25,6 +25,8 @@ public static class ApiEnvelope
             ErrorType.Forbidden => (403, "Forbidden", "E10009"),
             ErrorType.NotFound => (404, "Not Found", "E10004"),
             ErrorType.Conflict => (409, "Conflict", "E10003"),
+            ErrorType.Timeout => (408, "Request Timeout", "E90001"),
+            ErrorType.TooManyRequests => (429, "Too Many Requests", "E90002"),
             _ => (500, "Internal Server Error", (string?)null)
         };
 
