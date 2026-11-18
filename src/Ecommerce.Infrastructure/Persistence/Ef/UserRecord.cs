@@ -23,6 +23,7 @@ public sealed class UserPasswordRecord
 {
     public Guid Id { get; set; }
     public string CreatedBy { get; set; } = "";
+    public string RowStatus { get; set; } = "ACTIVE";
     public string RowType { get; set; } = "PASSWORD";
     public Guid UserId { get; set; }
     public byte[] Password { get; set; } = [];
@@ -95,4 +96,101 @@ public sealed class ConsentTypeRecord
 {
     public Guid Id { get; set; }
     public string RowStatus { get; set; } = "";
+}
+
+/// <summary>authen.l_user_login_attempt</summary>
+public sealed class LoginAttemptRecord
+{
+    public Guid Id { get; set; }
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public byte[] IdentifierHash { get; set; } = [];
+    public Guid? UserId { get; set; }
+    public string Result { get; set; } = "";
+}
+
+/// <summary>authen.t_user_access_token and authen.t_user_refresh_token (same columns).</summary>
+public abstract class TokenRecord
+{
+    public Guid Id { get; set; }
+    public string CreatedBy { get; set; } = "";
+    public string RowStatus { get; set; } = "ACTIVE";
+    public Guid UserId { get; set; }
+    public Guid SessionId { get; set; }
+    public byte[] Token { get; set; } = [];
+    public DateTime ExpiredAt { get; set; }
+}
+
+public sealed class AccessTokenRecord : TokenRecord;
+
+public sealed class RefreshTokenRecord : TokenRecord;
+
+/// <summary>author.m_role</summary>
+public sealed class RoleRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public string Name { get; set; } = "";
+}
+
+/// <summary>author.m_permission</summary>
+public sealed class PermissionRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public string Name { get; set; } = "";
+}
+
+/// <summary>author.m_scope</summary>
+public sealed class ScopeRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public string Scope { get; set; } = "";
+}
+
+/// <summary>author.t_permission_scope</summary>
+public sealed class PermissionScopeRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public Guid PermissionId { get; set; }
+    public Guid ScopeId { get; set; }
+}
+
+/// <summary>author.t_role_permission</summary>
+public sealed class RolePermissionRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public Guid RoleId { get; set; }
+    public Guid PermissionId { get; set; }
+}
+
+/// <summary>author.t_role_permission_scope</summary>
+public sealed class RolePermissionScopeRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public Guid RolePermissionId { get; set; }
+    public Guid PermissionScopeId { get; set; }
+}
+
+/// <summary>author.t_user_role</summary>
+public sealed class UserRoleRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public Guid UserId { get; set; }
+    public Guid RoleId { get; set; }
+}
+
+/// <summary>author.t_user_permission</summary>
+public sealed class UserPermissionRecord
+{
+    public Guid Id { get; set; }
+    public string RowStatus { get; set; } = "";
+    public Guid UserId { get; set; }
+    public Guid PermissionId { get; set; }
+    public Guid? PermissionScopeId { get; set; }
 }
