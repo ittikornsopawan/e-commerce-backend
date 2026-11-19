@@ -43,7 +43,10 @@ public sealed class UpsertUserProfileApiTests : IClassFixture<WebApplicationFact
     internal static string Jwt(string sub, string key = Key, int expiresInMinutes = 15) =>
         new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false }.CreateToken(new SecurityTokenDescriptor
         {
-            Issuer = "ecommerce", Audience = "ecommerce-api", IssuedAt = DateTime.UtcNow.AddMinutes(-1), Expires = DateTime.UtcNow.AddMinutes(expiresInMinutes),
+            Issuer = "ecommerce",
+            Audience = "ecommerce-api",
+            IssuedAt = DateTime.UtcNow.AddMinutes(-1),
+            Expires = DateTime.UtcNow.AddMinutes(expiresInMinutes),
             Claims = new Dictionary<string, object> { ["sub"] = sub, ["jti"] = Guid.NewGuid().ToString() },
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256)
         });

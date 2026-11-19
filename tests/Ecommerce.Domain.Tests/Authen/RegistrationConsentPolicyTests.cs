@@ -39,7 +39,7 @@ public sealed class RegistrationConsentPolicyTests
             Check(true, new(Required, "1.0.0", true), new(Guid.NewGuid(), "1.0.0", true)).FirstError);
 
     [Fact]
-    public void TC_REG_015_a_stale_version_is_400_and_comes_after_the_404() 
+    public void TC_REG_015_a_stale_version_is_400_and_comes_after_the_404()
     {
         Assert.Equal(AuthenErrors.ConsentVersionNotCurrent, Check(true, new SubmittedConsent(Required, "0.9.0", true)).FirstError);
         Assert.Equal(AuthenErrors.ConsentOrReferrerNotFound, Check(false, new SubmittedConsent(Required, "0.9.0", true)).FirstError);

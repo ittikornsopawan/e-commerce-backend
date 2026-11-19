@@ -130,7 +130,9 @@ public sealed class LoginApiTests : IClassFixture<WebApplicationFactory<Program>
 
         var validation = await new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().ValidateTokenAsync(access, new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
-            ValidIssuer = "ecommerce", ValidAudience = "ecommerce-api", ValidAlgorithms = ["HS256"],
+            ValidIssuer = "ecommerce",
+            ValidAudience = "ecommerce-api",
+            ValidAlgorithms = ["HS256"],
             IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(Encoding.UTF8.GetBytes(SigningKey))
         });
         Assert.True(validation.IsValid);

@@ -90,12 +90,20 @@ internal sealed class LoginRepository(EcommerceDbContext db, FieldProtector prot
         var createdBy = session.UserId.ToString();
         db.Add(new AccessTokenRecord
         {
-            CreatedBy = createdBy, UserId = session.UserId, SessionId = session.SessionId, Token = session.AccessTokenHash, ExpiredAt = session.AccessExpiresAtUtc
+            CreatedBy = createdBy,
+            UserId = session.UserId,
+            SessionId = session.SessionId,
+            Token = session.AccessTokenHash,
+            ExpiredAt = session.AccessExpiresAtUtc
         });
         await db.SaveChangesAsync(cancellationToken);
         db.Add(new RefreshTokenRecord
         {
-            CreatedBy = createdBy, UserId = session.UserId, SessionId = session.SessionId, Token = session.RefreshTokenHash, ExpiredAt = session.RefreshExpiresAtUtc
+            CreatedBy = createdBy,
+            UserId = session.UserId,
+            SessionId = session.SessionId,
+            Token = session.RefreshTokenHash,
+            ExpiredAt = session.RefreshExpiresAtUtc
         });
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -104,7 +112,10 @@ internal sealed class LoginRepository(EcommerceDbContext db, FieldProtector prot
     {
         db.Add(new LoginAttemptRecord
         {
-            CreatedBy = "system", CreatedAt = nowUtc, IdentifierHash = IdentifierHash(identifier), UserId = userId,
+            CreatedBy = "system",
+            CreatedAt = nowUtc,
+            IdentifierHash = IdentifierHash(identifier),
+            UserId = userId,
             Result = result.ToString().ToUpperInvariant()
         });
         await db.SaveChangesAsync(cancellationToken);

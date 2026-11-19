@@ -46,7 +46,10 @@ internal sealed class TokenService(JwtOptions jwt, SecurityOptions security, Tim
             [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
             ["user"] = new Dictionary<string, object?>
             {
-                ["id"] = user.Id.ToString(), ["username"] = user.Username, ["displayName"] = user.DisplayName, ["email"] = user.EmailAddress
+                ["id"] = user.Id.ToString(),
+                ["username"] = user.Username,
+                ["displayName"] = user.DisplayName,
+                ["email"] = user.EmailAddress
             },
             ["roles"] = claims.Claims.Roles.ToArray(),
             ["permissions"] = claims.Claims.Permissions.ToArray(),

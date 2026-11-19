@@ -49,6 +49,7 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
     {
         // Saved step by step to keep the insert order of the spec; the user id comes back from the database.
         var userId = await AddUserAsync(r, cancellationToken);
+        await AddPasswordAndInformationAsync(userId, r, cancellationToken);
         await AddAddressAsync(userId, r.DefaultAddress, cancellationToken);
         await AddConsentsAsync(userId, r, cancellationToken);
 
@@ -58,7 +59,7 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
         return userId;
     }
 
-    /// <summary>INSERT m_user, then its password and information rows.</summary>
+    /// <summary>INSERT m_user; the database generates its id.</summary>
     private async Task<Guid> AddUserAsync(NewRegistration r, CancellationToken cancellationToken)
     {
         var user = new UserRecord
@@ -72,18 +73,30 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
             ProfilePicturePath = r.ProfilePicturePath
         };
         await SaveAsync(user, cancellationToken);
+        return user.Id;
+    }
 
+    /// <summary>INSERT the user's PASSWORD row, then the information row.</summary>
+    private async Task AddPasswordAndInformationAsync(Guid userId, NewRegistration r, CancellationToken cancellationToken)
+    {
         await SaveAsync(new UserPasswordRecord
         {
-            CreatedBy = CreatedBy, RowType = "PASSWORD", UserId = user.Id, Password = r.Password.Hash, PasswordSalt = r.Password.Salt
+            CreatedBy = CreatedBy,
+            RowType = "PASSWORD",
+            UserId = userId,
+            Password = r.Password.Hash,
+            PasswordSalt = r.Password.Salt
         }, cancellationToken);
 
         await SaveAsync(new UserInformationRecord
         {
-            CreatedBy = CreatedBy, UserId = user.Id, PhoneNumber = ProtectOrNull(r.PhoneNumber), Address = ProtectOrNull(r.Address),
-            DateOfBirth = r.DateOfBirth, Gender = r.Gender
+            CreatedBy = CreatedBy,
+            UserId = userId,
+            PhoneNumber = ProtectOrNull(r.PhoneNumber),
+            Address = ProtectOrNull(r.Address),
+            DateOfBirth = r.DateOfBirth,
+            Gender = r.Gender
         }, cancellationToken);
-        return user.Id;
     }
 
     private async Task AddAddressAsync(Guid userId, RegistrationAddress? address, CancellationToken cancellationToken)
@@ -92,9 +105,15 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
 
         await SaveAsync(new UserAddressRecord
         {
-            CreatedBy = CreatedBy, UserId = userId, Title = a.Title, IsDefault = true, // the first address is always default
-            Address = protector.Protect(a.Address), City = protector.Protect(a.City), State = protector.Protect(a.State),
-            PostalCode = protector.Protect(a.PostalCode), Country = protector.Protect(a.Country)
+            CreatedBy = CreatedBy,
+            UserId = userId,
+            Title = a.Title,
+            IsDefault = true, // the first address is always default
+            Address = protector.Protect(a.Address),
+            City = protector.Protect(a.City),
+            State = protector.Protect(a.State),
+            PostalCode = protector.Protect(a.PostalCode),
+            Country = protector.Protect(a.Country)
         }, cancellationToken);
     }
 
@@ -105,8 +124,13 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
         {
             await SaveAsync(new UserConsentRecord
             {
-                CreatedBy = CreatedBy, UserId = userId, ConsentId = consent.ConsentId, ConsentVersion = consent.Version,
-                Result = consent.Result ?? false, IsRead = true, ReadAt = r.NowUtc
+                CreatedBy = CreatedBy,
+                UserId = userId,
+                ConsentId = consent.ConsentId,
+                ConsentVersion = consent.Version,
+                Result = consent.Result ?? false,
+                IsRead = true,
+                ReadAt = r.NowUtc
             }, cancellationToken);
         }
     }

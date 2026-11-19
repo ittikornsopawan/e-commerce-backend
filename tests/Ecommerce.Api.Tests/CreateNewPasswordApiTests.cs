@@ -49,12 +49,12 @@ public sealed class CreateNewPasswordApiTests : IClassFixture<WebApplicationFact
             "INSERT INTO authen.t_user_reset_password (created_by, user_id, reset_token, expired_at) VALUES ('test', @u, @t, @x)",
             ("u", userId), ("t", Hash(token)), ("x", DateTime.UtcNow.AddMinutes(expiresInMinutes)));
         foreach (var (status, minutes) in new[] { ("ACTIVE", 15), ("ACTIVE", -5), ("INACTIVE", 15) })
-        foreach (var table in new[] { "authen.t_user_access_token", "authen.t_user_refresh_token" })
-        {
-            await ExecuteAsync(_postgres.ConnectionString,
-                $"INSERT INTO {table} (created_by, row_status, user_id, session_id, token, expired_at) VALUES ('test', @s, @u, @sid, @t, @x)",
-                ("s", status), ("u", userId), ("sid", Guid.NewGuid()), ("t", RandomNumberGenerator.GetBytes(32)), ("x", DateTime.UtcNow.AddMinutes(minutes)));
-        }
+            foreach (var table in new[] { "authen.t_user_access_token", "authen.t_user_refresh_token" })
+            {
+                await ExecuteAsync(_postgres.ConnectionString,
+                    $"INSERT INTO {table} (created_by, row_status, user_id, session_id, token, expired_at) VALUES ('test', @s, @u, @sid, @t, @x)",
+                    ("s", status), ("u", userId), ("sid", Guid.NewGuid()), ("t", RandomNumberGenerator.GetBytes(32)), ("x", DateTime.UtcNow.AddMinutes(minutes)));
+            }
 
         return (userId, token);
     }
