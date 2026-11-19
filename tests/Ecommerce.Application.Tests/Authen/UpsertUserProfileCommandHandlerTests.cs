@@ -19,6 +19,7 @@ public sealed class UpsertUserProfileCommandHandlerTests
         public bool TokenCurrent { get; set; } = true;
         public Task<bool> LockActiveUserAsync(Guid u, CancellationToken ct) => Task.FromResult(UserActive);
         public Task<bool> IsCurrentAccessTokenAsync(byte[] h, Guid u, DateTime n, CancellationToken ct) => Task.FromResult(TokenCurrent);
+        public Task<bool> IsCurrentCredentialAsync(byte[] h, Guid u, DateTime n, CancellationToken ct) => Task.FromResult(UserActive && TokenCurrent);
     }
 
     private sealed class Profiles : IUserProfileRepository

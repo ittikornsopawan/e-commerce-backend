@@ -20,7 +20,7 @@ public sealed class JsonBody
         var messages = new List<string>();
         foreach (var p in body.EnumerateObject())
         {
-            if (!fields.TryGetValue(p.Name, out var kinds)) messages.Add($"{ValidationMessages.Field(p.Name)} is not a known field.");
+            if (!fields.TryGetValue(p.Name, out var kinds)) messages.Add(ValidationMessages.UnknownField(p.Name));
             else if (!kinds.Contains(p.Value.ValueKind)) messages.Add(ValidationMessages.JsonType(p.Name, kinds.Contains(JsonValueKind.True) ? "a boolean" : "a string"));
             else read._values[p.Name] = p.Value;
         }
