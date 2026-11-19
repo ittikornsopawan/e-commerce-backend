@@ -8,3 +8,6 @@ public interface IEmailSender
 
 /// <summary>Spec 03-reset-password settings: 3 resets per 1 hour, 30-minute tokens, the trusted reset page URL.</summary>
 public sealed record PasswordResetSettings(int MaxRequests, TimeSpan Window, TimeSpan TokenLifetime, string ResetUrl);
+
+/// <summary>Spec 09-upsert-user-address: the most non-DELETED addresses one user may keep (10).</summary>
+public sealed record AddressSettings(int MaxAddresses);

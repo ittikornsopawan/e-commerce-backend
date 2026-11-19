@@ -24,24 +24,39 @@ public static class DependencyInjection
         var security = configuration.GetSection(SecurityOptions.Section).Get<SecurityOptions>() ?? new SecurityOptions();
         database.Validate();
         jwt.Validate();
-        var fieldKey = security.DecodeFieldKey();
 
         services.AddSingleton(jwt);
         services.AddSingleton(security);
         services.TryAddSingleton(TimeProvider.System);
 
-        services.AddSingleton(NpgsqlDataSource.Create(EcommerceDbContext.UtcSession(database.ConnectionString)));
-        services.AddScoped<DbSession>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        AddSecurity(services, security);
+        AddPersistence(services, database);
+        AddAuthenRepositories(services);
+        AddAuthenSettings(services, security);
+        return services;
+    }
 
-        services.AddSingleton(new FieldProtector(fieldKey));
+    private static void AddSecurity(IServiceCollection services, SecurityOptions security)
+    {
+        services.AddSingleton(new FieldProtector(security.DecodeFieldKey()));
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IEmailSender, LoggingEmailSender>();
+    }
 
+    private static void AddPersistence(IServiceCollection services, DatabaseOptions database)
+    {
+        // Every session runs in UTC (EcommerceDbContext.UtcSession): the schema stores UTC without a time zone.
+        services.AddSingleton(NpgsqlDataSource.Create(EcommerceDbContext.UtcSession(database.ConnectionString)));
+        services.AddScoped<DbSession>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddDbContext<EcommerceDbContext>(o =>
             EcommerceDbContext.Configure((DbContextOptionsBuilder<EcommerceDbContext>)o, database.ConnectionString, database.CommandTimeoutSeconds));
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
+    }
+
+    private static void AddAuthenRepositories(IServiceCollection services)
+    {
         services.AddScoped<IRegistrationRepository, RegistrationRepository>();
         services.AddScoped<ILoginRepository, LoginRepository>();
         services.AddScoped<IPasswordResetRequestRepository, PasswordResetRequestRepository>();
@@ -51,16 +66,23 @@ public static class DependencyInjection
         services.AddScoped<ICallerCredentialRepository, CallerCredentialRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IUserProfileQueryRepository, UserProfileQueryRepository>();
-        services.AddSingleton(new RefreshSettings(TimeSpan.FromSeconds(security.RefreshReuseGraceSeconds)));
-        services.AddSingleton(new PasswordResetSettings(
-            security.PasswordResetMaxRequests, TimeSpan.FromMinutes(security.PasswordResetWindowMinutes),
-            TimeSpan.FromMinutes(security.PasswordResetMinutes), security.PasswordResetUrl));
-        services.AddSingleton(new LoginSettings(TimeSpan.FromMinutes(security.LoginFailureWindowMinutes)));
+        services.AddScoped<IUserAddressRepository, UserAddressRepository>();
 
+        // Legacy Dapper repositories, still used by GET api/authen/me until it is rebuilt.
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPasswordRepository, PasswordRepository>();
         services.AddScoped<ITokenRepository, TokenRepository>();
+    }
 
-        return services;
+    private static void AddAuthenSettings(IServiceCollection services, SecurityOptions security)
+    {
+        services.AddSingleton(new LoginSettings(TimeSpan.FromMinutes(security.LoginFailureWindowMinutes)));
+        services.AddSingleton(new PasswordResetSettings(
+            security.PasswordResetMaxRequests,
+            TimeSpan.FromMinutes(security.PasswordResetWindowMinutes),
+            TimeSpan.FromMinutes(security.PasswordResetMinutes),
+            security.PasswordResetUrl));
+        services.AddSingleton(new RefreshSettings(TimeSpan.FromSeconds(security.RefreshReuseGraceSeconds)));
+        services.AddSingleton(new AddressSettings(security.MaxAddressesPerUser));
     }
 }

@@ -1,8 +1,10 @@
 using System.Text.Json;
+using Ecommerce.Api.Contracts;
 using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Authen.GetUserProfile;
+using Ecommerce.Application.Features.Authen.UpsertUserAddress;
 using Ecommerce.Application.Features.Authen.UpsertUserProfile;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
@@ -23,8 +25,8 @@ public sealed class UserController(IDispatcher dispatcher) : ControllerBase
             return Result.Failure(Error.Validation("Profile.Shape", shapeError)).ToFailure(this);
 
         var result = await dispatcher.SendAsync(new UpsertUserProfileCommand(
-            VerifiedCaller.Of(this), p["firstName"], p["lastName"], p["displayName"], p["profilePicturePath"],
-            p["phoneNumber"], p["address"], p["dateOfBirth"], p["gender"]), cancellationToken);
+            VerifiedCaller.Of(this), p.String("firstName"), p.String("lastName"), p.String("displayName"), p.String("profilePicturePath"),
+            p.String("phoneNumber"), p.String("address"), p.String("dateOfBirth"), p.String("gender")), cancellationToken);
 
         return result.IsSuccess
             ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Upsert User Profile Success", result.Value)
@@ -42,5 +44,27 @@ public sealed class UserController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Profile Success", result.Value)
             : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 09-upsert-user-address: insert 201, update 200 (data.userAddressId), delete 204 with no body.</summary>
+    [HttpPost("address/upsert")]
+    public async Task<IActionResult> UpsertAddress([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        if (JsonBody.TryRead(body, AddressBody.Fields, out var b) is { } shapeError)
+            return Result.Failure(Error.Validation("Address.Shape", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new UpsertUserAddressCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("title").Value, b.Boolean("isDefault"), b.String("address").Value,
+            b.String("city").Value, b.String("state").Value, b.String("postalCode").Value, b.String("country").Value, b.String("rowStatus")),
+            cancellationToken);
+
+        if (result.IsFailure) return result.ToFailure(this);
+        var data = new { userAddressId = result.Value.UserAddressId };
+        return result.Value.Action switch
+        {
+            AddressAction.Insert => this.ToSuccess(StatusCodes.Status201Created, "Created", "Insert User Address Success", data),
+            AddressAction.Update => this.ToSuccess(StatusCodes.Status200OK, "Ok", "Update User Address Success", data),
+            _ => NoContent()
+        };
     }
 }

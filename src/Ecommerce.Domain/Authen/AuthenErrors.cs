@@ -49,4 +49,11 @@ public static class AuthenErrors
     // Spec 06-logout (and every protected API): one answer for every credential failure.
     public static readonly Error AccessTokenInvalid =
         Error.Unauthorized("Authen.AccessTokenInvalid", "Invalid or expired access token.");
+
+    // Spec 09-upsert-user-address.
+    public static readonly Error AddressNotFound =
+        Error.NotFound("Authen.AddressNotFound", "User address not found.");
+
+    public static Error AddressLimit(int max) =>
+        Error.Validation("Authen.AddressLimit", $"A user can have at most {max} addresses.");
 }
