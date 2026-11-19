@@ -34,25 +34,8 @@ public sealed class RefreshTokenCommandHandler(
             if (owner is null) return AuthenErrors.RefreshTokenInvalid;
 
             // A committed replay revocation is a success of the transaction but still answers 401 (null pair).
-            var outcome = await transactions.RunAsync<TokenPairResponse?>(IsolationLevel.ReadCommitted, async ct =>
-            {
-                var user = await refreshTokens.LockActiveUserAsync(owner.UserId, ct);
-                if (user is null) return Result.Failure<TokenPairResponse?>(AuthenErrors.RefreshTokenInvalid);
-
-                var now = clock.GetUtcNow().UtcDateTime; // after the user lock
-                var row = await refreshTokens.RereadAsync(owner, hash, ct);
-                switch (RefreshTokenReuse.Classify(row, now, settings.ReuseGrace))
-                {
-                    case RefreshDecision.Rotate:
-                        if (!await refreshTokens.ConsumeAsync(row!, hash, now, ct)) return Result.Failure<TokenPairResponse?>(AuthenErrors.RefreshTokenInvalid);
-                        return Result.Success<TokenPairResponse?>(await new SessionTokens(logins, tokenService).IssueAsync(user, row!.SessionId, ct));
-                    case RefreshDecision.Replay:
-                        await refreshTokens.CloseSessionAsync(row!.SessionId, user.Id, now, ct);
-                        return Result.Success<TokenPairResponse?>(null);
-                    default:
-                        return Result.Failure<TokenPairResponse?>(AuthenErrors.RefreshTokenInvalid);
-                }
-            }, cancellationToken);
+            var outcome = await transactions.RunAsync<TokenPairResponse?>(IsolationLevel.ReadCommitted,
+                ct => RefreshAsync(owner, hash, ct), cancellationToken);
 
             if (outcome.IsFailure) return outcome.FirstError;
             return outcome.Value is { } pair ? pair : AuthenErrors.RefreshTokenInvalid;
@@ -60,6 +43,27 @@ public sealed class RefreshTokenCommandHandler(
         catch (TimeoutException)
         {
             return CommonErrors.Timeout;
+        }
+    }
+
+    /// <summary>One attempt under the user lock: reread the row at a fresh now and act on its classification.</summary>
+    private async Task<Result<TokenPairResponse?>> RefreshAsync(RefreshOwner owner, byte[] hash, CancellationToken ct)
+    {
+        var user = await refreshTokens.LockActiveUserAsync(owner.UserId, ct);
+        if (user is null) return Result.Failure<TokenPairResponse?>(AuthenErrors.RefreshTokenInvalid);
+
+        var now = clock.GetUtcNow().UtcDateTime; // after the user lock
+        var row = await refreshTokens.RereadAsync(owner, hash, ct);
+        switch (RefreshTokenReuse.Classify(row, now, settings.ReuseGrace))
+        {
+            case RefreshDecision.Rotate:
+                if (!await refreshTokens.ConsumeAsync(row!, hash, now, ct)) return Result.Failure<TokenPairResponse?>(AuthenErrors.RefreshTokenInvalid);
+                return Result.Success<TokenPairResponse?>(await new SessionTokens(logins, tokenService).IssueAsync(user, row!.SessionId, ct));
+            case RefreshDecision.Replay:
+                await refreshTokens.CloseSessionAsync(row!.SessionId, user.Id, now, ct);
+                return Result.Success<TokenPairResponse?>(null);
+            default:
+                return Result.Failure<TokenPairResponse?>(AuthenErrors.RefreshTokenInvalid);
         }
     }
 }

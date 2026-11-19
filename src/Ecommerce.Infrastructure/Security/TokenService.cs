@@ -20,7 +20,6 @@ internal sealed class TokenService(JwtOptions jwt, SecurityOptions security, Tim
     {
         var now = clock.GetUtcNow().UtcDateTime;
         var expires = now + AccessTokenLifetime;
-        var user = claims.User;
 
         var descriptor = new SecurityTokenDescriptor
         {
@@ -29,23 +28,30 @@ internal sealed class TokenService(JwtOptions jwt, SecurityOptions security, Tim
             IssuedAt = now,
             Expires = expires,
             SigningCredentials = _signingCredentials,
-            Claims = new Dictionary<string, object>
-            {
-                [JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
-                [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
-                ["user"] = new Dictionary<string, object?>
-                {
-                    ["id"] = user.Id.ToString(), ["username"] = user.Username, ["displayName"] = user.DisplayName, ["email"] = user.EmailAddress
-                },
-                ["roles"] = claims.Claims.Roles.ToArray(),
-                ["permissions"] = claims.Claims.Permissions.ToArray(),
-                ["scopes"] = claims.Claims.Scopes.ToArray()
-            }
+            Claims = Payload(claims)
         };
 
         // The spec payload has iat and exp but no nbf.
         var handler = new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false };
         return new IssuedToken(handler.CreateToken(descriptor), expires);
+    }
+
+    /// <summary>The custom claims of the spec 02 payload: sub, jti, the user object, roles, permissions and scopes.</summary>
+    private static Dictionary<string, object> Payload(AccessTokenClaims claims)
+    {
+        var user = claims.User;
+        return new Dictionary<string, object>
+        {
+            [JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
+            [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
+            ["user"] = new Dictionary<string, object?>
+            {
+                ["id"] = user.Id.ToString(), ["username"] = user.Username, ["displayName"] = user.DisplayName, ["email"] = user.EmailAddress
+            },
+            ["roles"] = claims.Claims.Roles.ToArray(),
+            ["permissions"] = claims.Claims.Permissions.ToArray(),
+            ["scopes"] = claims.Claims.Scopes.ToArray()
+        };
     }
 
     public IssuedToken IssueRefreshToken() =>

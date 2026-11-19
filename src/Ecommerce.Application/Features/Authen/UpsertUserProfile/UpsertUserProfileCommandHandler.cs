@@ -27,25 +27,7 @@ public sealed class UpsertUserProfileCommandHandler(
 
         try
         {
-            return await transactions.RunAsync(IsolationLevel.ReadCommitted, async ct =>
-            {
-                var verified = await credential.VerifyAsync(r.Caller, ct);
-                if (verified.IsFailure) return Result.Failure<UpsertUserProfileResponse>(verified.FirstError);
-                var (userId, now) = (r.Caller!.UserId, verified.Value);
-
-                if (user.Any && !await profiles.UpdateUserAsync(userId, user, now, ct))
-                    throw new InvalidOperationException("The locked user row was not updated."); // spec: 500
-
-                if (information.Any)
-                {
-                    var informationId = await profiles.FindInformationIdAsync(userId, ct);
-                    if (informationId is null) await profiles.InsertInformationAsync(userId, information, ct);
-                    else if (!await profiles.UpdateInformationAsync(informationId.Value, userId, information, now, ct))
-                        throw new InvalidOperationException("The information row was not updated."); // spec: 500
-                }
-
-                return Result.Success(new UpsertUserProfileResponse(userId));
-            }, cancellationToken);
+            return await transactions.RunAsync(IsolationLevel.ReadCommitted, ct => UpsertAsync(r.Caller, user, information, ct), cancellationToken);
         }
         catch (TimeoutException)
         {
@@ -56,4 +38,28 @@ public sealed class UpsertUserProfileCommandHandler(
     // The validator has checked the format.
     private static Optional<DateOnly?> ToDate(Optional<string?> value) =>
         value.IsSet ? Optional<DateOnly?>.Of(value.Value is null ? null : DateOnly.ParseExact(value.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture)) : default;
+
+    /// <summary>One attempt: verify the caller under the user lock, then write only the groups the request touched.</summary>
+    private async Task<Result<UpsertUserProfileResponse>> UpsertAsync(
+        Caller? caller, ProfileUserChanges user, ProfileInformationChanges information, CancellationToken ct)
+    {
+        var verified = await credential.VerifyAsync(caller, ct);
+        if (verified.IsFailure) return Result.Failure<UpsertUserProfileResponse>(verified.FirstError);
+        var (userId, now) = (caller!.UserId, verified.Value);
+
+        if (user.Any && !await profiles.UpdateUserAsync(userId, user, now, ct))
+            throw new InvalidOperationException("The locked user row was not updated."); // spec: 500
+
+        if (information.Any) await UpsertInformationAsync(userId, information, now, ct);
+        return Result.Success(new UpsertUserProfileResponse(userId));
+    }
+
+    /// <summary>Insert the first non-DELETED information row, or update the existing one.</summary>
+    private async Task UpsertInformationAsync(Guid userId, ProfileInformationChanges information, DateTime now, CancellationToken ct)
+    {
+        var informationId = await profiles.FindInformationIdAsync(userId, ct);
+        if (informationId is null) await profiles.InsertInformationAsync(userId, information, ct);
+        else if (!await profiles.UpdateInformationAsync(informationId.Value, userId, information, now, ct))
+            throw new InvalidOperationException("The information row was not updated."); // spec: 500
+    }
 }

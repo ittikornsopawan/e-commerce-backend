@@ -25,19 +25,7 @@ internal sealed class EfTransactionRunner(EcommerceDbContext db) : ITransactionR
         {
             try
             {
-                await using var transaction = await db.Database.BeginTransactionAsync(isolation, cancellationToken);
-                try
-                {
-                    var result = await work(cancellationToken);
-                    if (result.IsSuccess) await transaction.CommitAsync(cancellationToken);
-                    else await transaction.RollbackAsync(cancellationToken);
-                    return result;
-                }
-                catch
-                {
-                    await RollbackQuietly(transaction);
-                    throw;
-                }
+                return await AttemptAsync(isolation, work, cancellationToken);
             }
             catch (Exception exception) when (Find<PostgresException>(exception) is { SqlState: PostgresErrorCodes.SerializationFailure } && attempt < MaxAttempts)
             {
@@ -48,6 +36,25 @@ internal sealed class EfTransactionRunner(EcommerceDbContext db) : ITransactionR
                 db.ChangeTracker.Clear();
                 throw translated;
             }
+        }
+    }
+
+    /// <summary>One transaction: commit a success, roll back a failure result or an exception.</summary>
+    private async Task<Result<T>> AttemptAsync<T>(
+        IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(isolation, cancellationToken);
+        try
+        {
+            var result = await work(cancellationToken);
+            if (result.IsSuccess) await transaction.CommitAsync(cancellationToken);
+            else await transaction.RollbackAsync(cancellationToken);
+            return result;
+        }
+        catch
+        {
+            await RollbackQuietly(transaction);
+            throw;
         }
     }
 

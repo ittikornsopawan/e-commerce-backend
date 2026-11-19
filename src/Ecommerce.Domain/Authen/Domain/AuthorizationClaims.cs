@@ -36,41 +36,55 @@ public static class AuthorizationClaims
         return dot < 0 ? permissionName : permissionName[..dot] + ":" + permissionName[(dot + 1)..];
     }
 
+    /// <summary>The lookups both grant sources share: ACTIVE permissions, permissions with any definition, ACTIVE definitions.</summary>
+    private sealed record GrantContext(
+        HashSet<Guid> Active, HashSet<Guid> Scoped, Dictionary<Guid, PermissionScopeDefinition> ActiveDefinitions)
+    {
+        /// <summary>An unscoped grant counts only for a permission that has no non-DELETED definition.</summary>
+        public bool AllowsUnscoped(Guid permissionId) => !Scoped.Contains(permissionId);
+
+        /// <summary>A scoped grant needs an ACTIVE definition of the same permission.</summary>
+        public PermissionScopeDefinition? Definition(Guid permissionScopeId, Guid permissionId) =>
+            ActiveDefinitions.GetValueOrDefault(permissionScopeId) is { } d && d.PermissionId == permissionId ? d : null;
+    }
+
     private static List<Grant> Grants(AuthorizationFacts facts)
     {
-        var active = facts.ActivePermissions.Select(p => p.PermissionId).ToHashSet();
-        var scoped = facts.Definitions.Select(d => d.PermissionId).ToHashSet();
-        var activeDefinitions = facts.Definitions.Where(d => d.RowStatus == "ACTIVE").ToDictionary(d => d.Id);
-        var grants = new List<Grant>();
+        var context = new GrantContext(
+            facts.ActivePermissions.Select(p => p.PermissionId).ToHashSet(),
+            facts.Definitions.Select(d => d.PermissionId).ToHashSet(),
+            facts.Definitions.Where(d => d.RowStatus == "ACTIVE").ToDictionary(d => d.Id));
 
-        foreach (var rolePermission in facts.RolePermissions.Where(rp => active.Contains(rp.PermissionId)))
+        return RoleGrants(facts, context).Concat(DirectGrants(facts, context)).ToList();
+    }
+
+    private static IEnumerable<Grant> RoleGrants(AuthorizationFacts facts, GrantContext context)
+    {
+        foreach (var rolePermission in facts.RolePermissions.Where(rp => context.Active.Contains(rp.PermissionId)))
         {
             var links = facts.RoleScopeLinks.Where(l => l.RolePermissionId == rolePermission.RolePermissionId).ToList();
-            if (links.Count == 0)
-            {
-                if (!scoped.Contains(rolePermission.PermissionId)) grants.Add(new Grant(rolePermission.PermissionId, null));
-                continue;
-            }
+            if (links.Count == 0 && context.AllowsUnscoped(rolePermission.PermissionId))
+                yield return new Grant(rolePermission.PermissionId, null);
 
-            grants.AddRange(links
-                .Select(l => activeDefinitions.GetValueOrDefault(l.PermissionScopeId))
-                .Where(d => d is not null && d.PermissionId == rolePermission.PermissionId)
-                .Select(d => new Grant(rolePermission.PermissionId, d!.ScopeId)));
+            // A failed link is never read as unscoped: it simply grants nothing.
+            foreach (var definition in links.Select(l => context.Definition(l.PermissionScopeId, rolePermission.PermissionId)).OfType<PermissionScopeDefinition>())
+                yield return new Grant(rolePermission.PermissionId, definition.ScopeId);
         }
+    }
 
-        foreach (var direct in facts.DirectPermissions.Where(dp => active.Contains(dp.PermissionId)))
+    private static IEnumerable<Grant> DirectGrants(AuthorizationFacts facts, GrantContext context)
+    {
+        foreach (var direct in facts.DirectPermissions.Where(dp => context.Active.Contains(dp.PermissionId)))
         {
             if (direct.PermissionScopeId is null)
             {
-                if (!scoped.Contains(direct.PermissionId)) grants.Add(new Grant(direct.PermissionId, null));
+                if (context.AllowsUnscoped(direct.PermissionId)) yield return new Grant(direct.PermissionId, null);
             }
-            else if (activeDefinitions.GetValueOrDefault(direct.PermissionScopeId.Value) is { } definition && definition.PermissionId == direct.PermissionId)
+            else if (context.Definition(direct.PermissionScopeId.Value, direct.PermissionId) is { } definition)
             {
-                grants.Add(new Grant(direct.PermissionId, definition.ScopeId));
+                yield return new Grant(direct.PermissionId, definition.ScopeId);
             }
         }
-
-        return grants;
     }
 }
 

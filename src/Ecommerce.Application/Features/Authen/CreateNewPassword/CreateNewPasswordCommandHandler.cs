@@ -30,22 +30,8 @@ public sealed class CreateNewPasswordCommandHandler(
             var route = await passwords.FindResetAsync(tokenHash, clock.GetUtcNow().UtcDateTime, cancellationToken);
             if (route is null) return Result.Failure(AuthenErrors.InvalidResetToken);
 
-            var result = await transactions.RunAsync(IsolationLevel.ReadCommitted, async ct =>
-            {
-                if (!await passwords.LockActiveUserAsync(route.UserId, ct)) return Result.Failure<bool>(AuthenErrors.InvalidResetToken);
-
-                var now = clock.GetUtcNow().UtcDateTime; // after the user lock; never the lookup time
-                if (!await passwords.ConsumeResetAsync(route, tokenHash, now, ct)) return Result.Failure<bool>(AuthenErrors.InvalidResetToken);
-
-                var current = await passwords.GetCurrentPasswordAsync(route.UserId, ct)
-                    ?? throw new InvalidOperationException("The user has no ACTIVE PASSWORD row."); // spec: internal failure, 500
-                if (hasher.Verify(newPassword, current.Credential)) return Result.Failure<bool>(AuthenErrors.SamePassword);
-
-                if (!await passwords.ReplacePasswordAsync(route.UserId, current.PasswordId, hasher.Hash(newPassword), now, ct))
-                    throw new InvalidOperationException("The current PASSWORD row changed under the user lock.");
-                await passwords.CloseAllTokensAsync(route.UserId, now, ct);
-                return Result.Success(true);
-            }, cancellationToken);
+            var result = await transactions.RunAsync(IsolationLevel.ReadCommitted,
+                ct => ReplaceAsync(route, tokenHash, newPassword, ct), cancellationToken);
 
             return result.IsSuccess ? Result.Success() : Result.Failure(result.FirstError);
         }
@@ -53,5 +39,23 @@ public sealed class CreateNewPasswordCommandHandler(
         {
             return Result.Failure(CommonErrors.Timeout);
         }
+    }
+
+    /// <summary>One attempt under the user lock: consume the reset once, refuse the same password, replace it, close every token.</summary>
+    private async Task<Result<bool>> ReplaceAsync(ResetRoute route, byte[] tokenHash, string newPassword, CancellationToken ct)
+    {
+        if (!await passwords.LockActiveUserAsync(route.UserId, ct)) return Result.Failure<bool>(AuthenErrors.InvalidResetToken);
+
+        var now = clock.GetUtcNow().UtcDateTime; // after the user lock; never the lookup time
+        if (!await passwords.ConsumeResetAsync(route, tokenHash, now, ct)) return Result.Failure<bool>(AuthenErrors.InvalidResetToken);
+
+        var current = await passwords.GetCurrentPasswordAsync(route.UserId, ct)
+            ?? throw new InvalidOperationException("The user has no ACTIVE PASSWORD row."); // spec: internal failure, 500
+        if (hasher.Verify(newPassword, current.Credential)) return Result.Failure<bool>(AuthenErrors.SamePassword);
+
+        if (!await passwords.ReplacePasswordAsync(route.UserId, current.PasswordId, hasher.Hash(newPassword), now, ct))
+            throw new InvalidOperationException("The current PASSWORD row changed under the user lock.");
+        await passwords.CloseAllTokensAsync(route.UserId, now, ct);
+        return Result.Success(true);
     }
 }
