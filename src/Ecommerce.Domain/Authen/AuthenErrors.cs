@@ -45,4 +45,8 @@ public static class AuthenErrors
     // Spec 05-refresh-token: one answer for every authentication failure.
     public static readonly Error RefreshTokenInvalid =
         Error.Unauthorized("Authen.RefreshTokenInvalid", "Invalid or expired refresh token.");
+
+    // Spec 06-logout (and every protected API): one answer for every credential failure.
+    public static readonly Error AccessTokenInvalid =
+        Error.Unauthorized("Authen.AccessTokenInvalid", "Invalid or expired access token.");
 }

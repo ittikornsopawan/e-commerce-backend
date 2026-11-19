@@ -9,7 +9,7 @@ namespace Ecommerce.Api.Filters;
 
 /// <summary>
 /// The mandatory headers of every spec, checked before the body is read: 400 E10001, never 415
-/// (api-conventions.md "Validation messages", Josh 2026-11-18). content-type is checked only when a body can be sent.
+/// (api-conventions.md "Validation messages", Josh 2026-11-18). content-type is checked only when a body is sent.
 /// </summary>
 public sealed class RequiredHeadersFilter : IAsyncResourceFilter
 {
@@ -29,7 +29,8 @@ public sealed class RequiredHeadersFilter : IAsyncResourceFilter
 
     private static IEnumerable<string> Check(HttpRequest request)
     {
-        if (HttpMethods.IsPost(request.Method) || HttpMethods.IsPut(request.Method) || HttpMethods.IsPatch(request.Method))
+        // Only a request that carries a body must declare JSON (logout has no body and no content-type).
+        if (request.ContentLength > 0 || request.Headers.TransferEncoding.Count > 0)
         {
             if (!MediaTypeHeaderValue.TryParse(request.ContentType, out var type) || !type.MediaType.Equals("application/json", StringComparison.OrdinalIgnoreCase))
                 yield return "Content-Type must be application/json.";
