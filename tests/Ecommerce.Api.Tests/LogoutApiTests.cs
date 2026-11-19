@@ -82,7 +82,7 @@ public sealed class LogoutApiTests : IClassFixture<WebApplicationFactory<Program
         var request = new HttpRequestMessage(HttpMethod.Post, Path);
         if (body is not null) request.Content = new StringContent(body, Encoding.UTF8, "application/json");
         if (jwt is not null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-        if (timestamp is not null) request.Headers.Add("timestamp", timestamp == "now" ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : timestamp);
+        if (timestamp is not null) request.Headers.Add("timestamp", timestamp == "now" ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture) : timestamp);
         return (client ?? _factory.CreateClient()).SendAsync(request);
     }
 

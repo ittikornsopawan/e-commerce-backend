@@ -9,6 +9,8 @@ public sealed class UserRecord
     public Guid Id { get; set; }
     public string CreatedBy { get; set; } = "";
     public DateTime CreatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public string RowStatus { get; set; } = "ACTIVE";
     public byte[] Username { get; set; } = [];
     public byte[] EmailAddress { get; set; } = [];
@@ -37,6 +39,9 @@ public sealed class UserInformationRecord
 {
     public Guid Id { get; set; }
     public string CreatedBy { get; set; } = "";
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string RowStatus { get; set; } = "ACTIVE";
     public Guid UserId { get; set; }
     public byte[]? PhoneNumber { get; set; }
     public byte[]? Address { get; set; }
