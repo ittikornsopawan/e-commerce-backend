@@ -26,4 +26,15 @@ public sealed class CallerCredential(ICallerCredentialRepository credentials, IT
 
         return Result.Success(now);
     }
+
+    /// <summary>The read-only variant (spec 10): no lock; fresh now, JWT expiry recheck, then the joined token and user.</summary>
+    public async Task<Result<DateTime>> CheckAsync(Caller caller, CancellationToken cancellationToken)
+    {
+        var now = clock.GetUtcNow().UtcDateTime; // just before the credential read
+        if (caller.TokenExpiresAtUtc <= now
+            || !await credentials.IsCurrentCredentialAsync(tokenService.Hash(caller.AccessToken), caller.UserId, now, cancellationToken))
+            return Result.Failure<DateTime>(AuthenErrors.AccessTokenInvalid);
+
+        return Result.Success(now);
+    }
 }

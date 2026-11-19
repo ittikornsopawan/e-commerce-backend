@@ -42,6 +42,8 @@ public static class ValidationMessages
     /// <summary><paramref name="jsonType"/> is "an object", "an array", "a boolean" or "a string".</summary>
     public static string JsonType(string requestField, string jsonType) => $"{Field(requestField)} must be {jsonType}.";
 
+    public static string UnknownField(string requestField) => $"{Field(requestField)} is not a known field.";
+
     public static string Duplicated(string requestField) => $"{Field(requestField)} must not be duplicated.";
 
     /// <summary>Puts the position of an item or object first: <c>consents[1]: ...</c>, <c>addresses: ...</c>.</summary>

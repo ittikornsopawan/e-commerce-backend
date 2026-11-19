@@ -66,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<ICallerCredentialRepository, CallerCredentialRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IUserProfileQueryRepository, UserProfileQueryRepository>();
+        services.AddScoped<IUserAddressQueryRepository, UserAddressQueryRepository>();
         services.AddScoped<IUserAddressRepository, UserAddressRepository>();
 
         // Legacy Dapper repositories, still used by GET api/authen/me until it is rebuilt.

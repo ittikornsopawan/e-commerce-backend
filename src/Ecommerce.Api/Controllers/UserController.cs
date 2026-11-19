@@ -4,6 +4,7 @@ using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Authen.GetUserProfile;
+using Ecommerce.Application.Features.Authen.InquiryUserAddress;
 using Ecommerce.Application.Features.Authen.UpsertUserAddress;
 using Ecommerce.Application.Features.Authen.UpsertUserProfile;
 using Ecommerce.Shared.Cqrs;
@@ -66,5 +67,23 @@ public sealed class UserController(IDispatcher dispatcher) : ControllerBase
             AddressAction.Update => this.ToSuccess(StatusCodes.Status200OK, "Ok", "Update User Address Success", data),
             _ => NoContent()
         };
+    }
+
+    private static readonly HashSet<string> AddressQueryKeys = ["id", "pageIndex", "pageSize", "search", "rowStatus"];
+
+    /// <summary>Spec 10-inquiry-user-address: 200 S10000 with items and the four pagination totals.</summary>
+    [HttpGet("address")]
+    public async Task<IActionResult> GetAddresses(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, AddressQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("Address.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryUserAddressQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"),
+            q.GetValueOrDefault("search"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Address Success", result.Value)
+            : result.ToFailure(this);
     }
 }
