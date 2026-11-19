@@ -68,7 +68,7 @@ public sealed class RegisterCommandHandlerTests
     }
 
     [Fact]
-    public async Task TC_REG_012_a_concurrent_duplicate_is_the_same_409() 
+    public async Task TC_REG_012_a_concurrent_duplicate_is_the_same_409()
     {
         _repository.ThrowOnAdd = new DuplicateKeyException("m_user_username_key", "authen.m_user");
         Assert.Equal(AuthenErrors.IdentifierTaken, (await Handle()).FirstError);

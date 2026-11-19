@@ -34,8 +34,12 @@ internal sealed class UserProfileRepository(EcommerceDbContext db, FieldProtecto
     {
         var row = new UserInformationRecord
         {
-            CreatedBy = userId.ToString(), UserId = userId, PhoneNumber = Protect(c.PhoneNumber.Value), Address = Protect(c.Address.Value),
-            DateOfBirth = c.DateOfBirth.Value, Gender = c.Gender.Value
+            CreatedBy = userId.ToString(),
+            UserId = userId,
+            PhoneNumber = Protect(c.PhoneNumber.Value),
+            Address = Protect(c.Address.Value),
+            DateOfBirth = c.DateOfBirth.Value,
+            Gender = c.Gender.Value
         };
         db.Add(row);
         await db.SaveChangesAsync(cancellationToken);

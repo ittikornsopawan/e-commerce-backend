@@ -54,7 +54,12 @@ public sealed class UpsertUserAddressApiTests : IClassFixture<WebApplicationFact
     {
         var body = new JsonObject
         {
-            ["title"] = title, ["address"] = "1 Road", ["city"] = "Watthana", ["state"] = "Bangkok", ["postalCode"] = "10110", ["country"] = "Thailand"
+            ["title"] = title,
+            ["address"] = "1 Road",
+            ["city"] = "Watthana",
+            ["state"] = "Bangkok",
+            ["postalCode"] = "10110",
+            ["country"] = "Thailand"
         };
         if (id is not null) body["id"] = id.ToString();
         if (rowStatus is not null) body["rowStatus"] = rowStatus;

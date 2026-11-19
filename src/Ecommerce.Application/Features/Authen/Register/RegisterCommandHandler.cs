@@ -31,21 +31,8 @@ public sealed class RegisterCommandHandler(
 
         try
         {
-            return await transactions.RunAsync(IsolationLevel.RepeatableRead, async ct =>
-            {
-                var now = clock.GetUtcNow().UtcDateTime; // captured just before the first read of this attempt
-
-                if (await registrations.IdentifierExistsAsync(r.Username!, r.EmailAddress!, ct))
-                    return Result.Failure<RegisterResponse>(AuthenErrors.IdentifierTaken);
-
-                var applicable = await registrations.GetApplicableConsentsAsync(now, ct);
-                var referrerFound = referrerId is null || await registrations.UserExistsAsync(referrerId.Value, ct);
-                if (RegistrationConsentPolicy.Check(applicable, consents, referrerFound) is { IsFailure: true } rejected)
-                    return Result.Failure<RegisterResponse>(rejected.FirstError);
-
-                var userId = await registrations.AddAsync(ToRegistration(r, credential, referrerId, consents, now), ct);
-                return Result.Success(new RegisterResponse(userId));
-            }, cancellationToken);
+            return await transactions.RunAsync(IsolationLevel.RepeatableRead,
+                ct => RegisterAsync(r, credential, referrerId, consents, ct), cancellationToken);
         }
         // Only the identifier constraints of authen.m_user mean "already exists" (sequence: m_user identifier UNIQUE
         // violation); any other duplicate is unexpected and answers the generic 500.
@@ -61,6 +48,24 @@ public sealed class RegisterCommandHandler(
         {
             return CommonErrors.Timeout;
         }
+    }
+
+    /// <summary>One attempt: duplicate check (409), consent and referrer reads, the consent policy, then every insert.</summary>
+    private async Task<Result<RegisterResponse>> RegisterAsync(
+        RegisterCommand r, PasswordCredential credential, Guid? referrerId, IReadOnlyList<SubmittedConsent> consents, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow().UtcDateTime; // captured just before the first read of this attempt
+
+        if (await registrations.IdentifierExistsAsync(r.Username!, r.EmailAddress!, ct))
+            return Result.Failure<RegisterResponse>(AuthenErrors.IdentifierTaken);
+
+        var applicable = await registrations.GetApplicableConsentsAsync(now, ct);
+        var referrerFound = referrerId is null || await registrations.UserExistsAsync(referrerId.Value, ct);
+        if (RegistrationConsentPolicy.Check(applicable, consents, referrerFound) is { IsFailure: true } rejected)
+            return Result.Failure<RegisterResponse>(rejected.FirstError);
+
+        var userId = await registrations.AddAsync(ToRegistration(r, credential, referrerId, consents, now), ct);
+        return Result.Success(new RegisterResponse(userId));
     }
 
     private static NewRegistration ToRegistration(

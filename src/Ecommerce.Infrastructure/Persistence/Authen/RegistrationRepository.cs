@@ -48,6 +48,20 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
     public async Task<Guid> AddAsync(NewRegistration r, CancellationToken cancellationToken)
     {
         // Saved step by step to keep the insert order of the spec; the user id comes back from the database.
+        var userId = await AddUserAsync(r, cancellationToken);
+        await AddPasswordAndInformationAsync(userId, r, cancellationToken);
+        await AddAddressAsync(userId, r.DefaultAddress, cancellationToken);
+        await AddConsentsAsync(userId, r, cancellationToken);
+
+        if (r.ReferrerId is { } referrerId)
+            await SaveAsync(new UserReferralRecord { CreatedBy = CreatedBy, UserId = userId, ReferrerId = referrerId }, cancellationToken);
+
+        return userId;
+    }
+
+    /// <summary>INSERT m_user; the database generates its id.</summary>
+    private async Task<Guid> AddUserAsync(NewRegistration r, CancellationToken cancellationToken)
+    {
         var user = new UserRecord
         {
             CreatedBy = CreatedBy,
@@ -59,44 +73,66 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
             ProfilePicturePath = r.ProfilePicturePath
         };
         await SaveAsync(user, cancellationToken);
+        return user.Id;
+    }
 
+    /// <summary>INSERT the user's PASSWORD row, then the information row.</summary>
+    private async Task AddPasswordAndInformationAsync(Guid userId, NewRegistration r, CancellationToken cancellationToken)
+    {
         await SaveAsync(new UserPasswordRecord
         {
-            CreatedBy = CreatedBy, RowType = "PASSWORD", UserId = user.Id, Password = r.Password.Hash, PasswordSalt = r.Password.Salt
+            CreatedBy = CreatedBy,
+            RowType = "PASSWORD",
+            UserId = userId,
+            Password = r.Password.Hash,
+            PasswordSalt = r.Password.Salt
         }, cancellationToken);
 
         await SaveAsync(new UserInformationRecord
         {
-            CreatedBy = CreatedBy, UserId = user.Id, PhoneNumber = ProtectOrNull(r.PhoneNumber), Address = ProtectOrNull(r.Address),
-            DateOfBirth = r.DateOfBirth, Gender = r.Gender
+            CreatedBy = CreatedBy,
+            UserId = userId,
+            PhoneNumber = ProtectOrNull(r.PhoneNumber),
+            Address = ProtectOrNull(r.Address),
+            DateOfBirth = r.DateOfBirth,
+            Gender = r.Gender
         }, cancellationToken);
+    }
 
-        if (r.DefaultAddress is { } a)
+    private async Task AddAddressAsync(Guid userId, RegistrationAddress? address, CancellationToken cancellationToken)
+    {
+        if (address is not { } a) return;
+
+        await SaveAsync(new UserAddressRecord
         {
-            await SaveAsync(new UserAddressRecord
-            {
-                CreatedBy = CreatedBy, UserId = user.Id, Title = a.Title, IsDefault = true, // the first address is always default
-                Address = protector.Protect(a.Address), City = protector.Protect(a.City), State = protector.Protect(a.State),
-                PostalCode = protector.Protect(a.PostalCode), Country = protector.Protect(a.Country)
-            }, cancellationToken);
-        }
+            CreatedBy = CreatedBy,
+            UserId = userId,
+            Title = a.Title,
+            IsDefault = true, // the first address is always default
+            Address = protector.Protect(a.Address),
+            City = protector.Protect(a.City),
+            State = protector.Protect(a.State),
+            PostalCode = protector.Protect(a.PostalCode),
+            Country = protector.Protect(a.Country)
+        }, cancellationToken);
+    }
 
+    private async Task AddConsentsAsync(Guid userId, NewRegistration r, CancellationToken cancellationToken)
+    {
         // consentId order as PostgreSQL sorts uuid (its lower-case text).
         foreach (var consent in r.Consents.OrderBy(c => c.ConsentId.ToString(), StringComparer.Ordinal))
         {
             await SaveAsync(new UserConsentRecord
             {
-                CreatedBy = CreatedBy, UserId = user.Id, ConsentId = consent.ConsentId, ConsentVersion = consent.Version,
-                Result = consent.Result ?? false, IsRead = true, ReadAt = r.NowUtc
+                CreatedBy = CreatedBy,
+                UserId = userId,
+                ConsentId = consent.ConsentId,
+                ConsentVersion = consent.Version,
+                Result = consent.Result ?? false,
+                IsRead = true,
+                ReadAt = r.NowUtc
             }, cancellationToken);
         }
-
-        if (r.ReferrerId is { } referrerId)
-        {
-            await SaveAsync(new UserReferralRecord { CreatedBy = CreatedBy, UserId = user.Id, ReferrerId = referrerId }, cancellationToken);
-        }
-
-        return user.Id;
     }
 
     private async Task SaveAsync<TRecord>(TRecord record, CancellationToken cancellationToken) where TRecord : class

@@ -33,17 +33,8 @@ public sealed class RequestPasswordResetCommandHandler(
             var userId = await resets.FindActiveUserIdAsync(email, cancellationToken);
             if (userId is null) return Result.Success();
 
-            var issued = await transactions.RunAsync(IsolationLevel.ReadCommitted, async ct =>
-            {
-                if (!await resets.LockActiveUserAsync(userId.Value, email, ct)) return Result.Success(false);
-
-                var now = clock.GetUtcNow().UtcDateTime; // after the user lock
-                if (PasswordResetThrottle.IsRefused(await resets.CountRequestsAsync(userId.Value, now - settings.Window, ct), settings.MaxRequests))
-                    return Result.Success(false);
-
-                await resets.ReplaceActiveResetAsync(userId.Value, tokenHash, now, now + settings.TokenLifetime, ct);
-                return Result.Success(true);
-            }, cancellationToken);
+            var issued = await transactions.RunAsync(IsolationLevel.ReadCommitted,
+                ct => IssueAsync(userId.Value, email, tokenHash, ct), cancellationToken);
 
             // After COMMIT only; a delivery problem never changes the answer.
             if (issued.Value) await emailSender.SendPasswordResetAsync(email, settings.ResetUrl + token, cancellationToken);
@@ -53,5 +44,18 @@ public sealed class RequestPasswordResetCommandHandler(
         {
             return Result.Failure(CommonErrors.Timeout);
         }
+    }
+
+    /// <summary>One attempt under the user lock: refuse past the hourly limit, else replace the ACTIVE reset. True when issued.</summary>
+    private async Task<Result<bool>> IssueAsync(Guid userId, string email, byte[] tokenHash, CancellationToken ct)
+    {
+        if (!await resets.LockActiveUserAsync(userId, email, ct)) return Result.Success(false);
+
+        var now = clock.GetUtcNow().UtcDateTime; // after the user lock
+        if (PasswordResetThrottle.IsRefused(await resets.CountRequestsAsync(userId, now - settings.Window, ct), settings.MaxRequests))
+            return Result.Success(false);
+
+        await resets.ReplaceActiveResetAsync(userId, tokenHash, now, now + settings.TokenLifetime, ct);
+        return Result.Success(true);
     }
 }

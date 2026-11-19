@@ -43,7 +43,9 @@ public sealed class LogoutApiTests : IClassFixture<WebApplicationFactory<Program
     private static string Jwt(string sub, string key = Key, int expiresInMinutes = 15) =>
         new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false }.CreateToken(new SecurityTokenDescriptor
         {
-            Issuer = "ecommerce", Audience = "ecommerce-api", IssuedAt = DateTime.UtcNow.AddMinutes(-30),
+            Issuer = "ecommerce",
+            Audience = "ecommerce-api",
+            IssuedAt = DateTime.UtcNow.AddMinutes(-30),
             Expires = DateTime.UtcNow.AddMinutes(expiresInMinutes),
             Claims = new Dictionary<string, object> { ["sub"] = sub, ["jti"] = Guid.NewGuid().ToString() },
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256)

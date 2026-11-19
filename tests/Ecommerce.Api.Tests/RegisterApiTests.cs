@@ -265,7 +265,12 @@ public sealed class RegisterApiTests : IClassFixture<WebApplicationFactory<Progr
 
     private static JsonObject Address() => new()
     {
-        ["title"] = "Home", ["address"] = "1 Road", ["city"] = "Watthana", ["state"] = "Bangkok", ["postalCode"] = "10110", ["country"] = "Thailand"
+        ["title"] = "Home",
+        ["address"] = "1 Road",
+        ["city"] = "Watthana",
+        ["state"] = "Bangkok",
+        ["postalCode"] = "10110",
+        ["country"] = "Thailand"
     };
 
     [Fact]
