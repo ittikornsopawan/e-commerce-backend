@@ -3,10 +3,13 @@ using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Authen.CreateNewPassword;
 using Ecommerce.Application.Features.Authen.Login;
+using Ecommerce.Application.Features.Authen.Logout;
 using Ecommerce.Application.Features.Authen.RefreshToken;
 using Ecommerce.Application.Features.Authen.Register;
 using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
+using Ecommerce.Shared.Results;
+using Microsoft.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -80,6 +83,27 @@ public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
 
         return result.IsSuccess
             ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Refresh Token Success", result.Value)
+            : result.ToFailure(this);
+    }
+
+    /// <summary>
+    /// Spec 06-logout: 200 S10000 status only. Validation (400) comes before the credential (401), so the JWT is checked
+    /// here instead of by [Authorize], which would answer 401 before the header filter runs.
+    /// </summary>
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        if (Request.ContentLength > 0 || Request.Headers.TransferEncoding.Count > 0)
+            return Result.Failure(Error.Validation("Logout.Body", "Timestamp must be a valid UTC timestamp and the request body must be empty.")).ToFailure(this);
+
+        var header = Request.Headers.Authorization.ToString();
+        if (User.Identity?.IsAuthenticated != true || !User.TryGetUserId(out var userId) || !User.TryGetExpiresAt(out var expiresAt)
+            || !header.StartsWith("Bearer ", StringComparison.Ordinal))
+            return Result.Failure(Ecommerce.Domain.Authen.AuthenErrors.AccessTokenInvalid).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new LogoutCommand(userId, header["Bearer ".Length..], expiresAt), cancellationToken);
+        return result.IsSuccess
+            ? this.ToSuccess<object>(StatusCodes.Status200OK, "Ok", "Logout Success", null)
             : result.ToFailure(this);
     }
 }

@@ -37,10 +37,7 @@ internal sealed class RefreshTokenRepository(EcommerceDbContext db, FieldProtect
 
     public async Task CloseSessionAsync(Guid sessionId, Guid userId, DateTime nowUtc, CancellationToken cancellationToken)
     {
-        var by = userId.ToString();
-        await db.RefreshTokens.Where(t => t.SessionId == sessionId && t.UserId == userId && t.RowStatus == "ACTIVE")
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UpdatedBy, by).SetProperty(t => t.UpdatedAt, nowUtc).SetProperty(t => t.RowStatus, "INACTIVE"), cancellationToken);
-        await db.AccessTokens.Where(t => t.SessionId == sessionId && t.UserId == userId && t.RowStatus == "ACTIVE")
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UpdatedBy, by).SetProperty(t => t.UpdatedAt, nowUtc).SetProperty(t => t.RowStatus, "INACTIVE"), cancellationToken);
+        await SessionRevocation.CloseRefreshTokensAsync(db, sessionId, userId, nowUtc, cancellationToken);
+        await SessionRevocation.CloseAccessTokensAsync(db, sessionId, userId, nowUtc, cancellationToken);
     }
 }
