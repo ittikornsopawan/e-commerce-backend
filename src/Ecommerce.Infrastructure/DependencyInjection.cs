@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<ILogoutRepository, LogoutRepository>();
         services.AddScoped<ICallerCredentialRepository, CallerCredentialRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<IUserProfileQueryRepository, UserProfileQueryRepository>();
         services.AddSingleton(new RefreshSettings(TimeSpan.FromSeconds(security.RefreshReuseGraceSeconds)));
         services.AddSingleton(new PasswordResetSettings(
             security.PasswordResetMaxRequests, TimeSpan.FromMinutes(security.PasswordResetWindowMinutes),
