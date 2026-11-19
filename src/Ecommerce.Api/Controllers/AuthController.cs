@@ -9,7 +9,6 @@ using Ecommerce.Application.Features.Authen.Register;
 using Ecommerce.Application.Features.Authen.ResetPassword;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
-using Microsoft.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -96,12 +95,10 @@ public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
         if (Request.ContentLength > 0 || Request.Headers.TransferEncoding.Count > 0)
             return Result.Failure(Error.Validation("Logout.Body", "Timestamp must be a valid UTC timestamp and the request body must be empty.")).ToFailure(this);
 
-        var header = Request.Headers.Authorization.ToString();
-        if (User.Identity?.IsAuthenticated != true || !User.TryGetUserId(out var userId) || !User.TryGetExpiresAt(out var expiresAt)
-            || !header.StartsWith("Bearer ", StringComparison.Ordinal))
+        if (VerifiedCaller.Of(this) is not { } caller)
             return Result.Failure(Ecommerce.Domain.Authen.AuthenErrors.AccessTokenInvalid).ToFailure(this);
 
-        var result = await dispatcher.SendAsync(new LogoutCommand(userId, header["Bearer ".Length..], expiresAt), cancellationToken);
+        var result = await dispatcher.SendAsync(new LogoutCommand(caller.UserId, caller.AccessToken, caller.TokenExpiresAtUtc), cancellationToken);
         return result.IsSuccess
             ? this.ToSuccess<object>(StatusCodes.Status200OK, "Ok", "Logout Success", null)
             : result.ToFailure(this);

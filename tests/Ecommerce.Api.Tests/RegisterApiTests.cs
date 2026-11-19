@@ -73,7 +73,7 @@ public sealed class RegisterApiTests : IClassFixture<WebApplicationFactory<Progr
     {
         var request = new HttpRequestMessage(HttpMethod.Post, Path) { Content = new StringContent(body, Encoding.UTF8) };
         request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-        if (timestamp is not null) request.Headers.Add("timestamp", timestamp == "now" ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : timestamp);
+        if (timestamp is not null) request.Headers.Add("timestamp", timestamp == "now" ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture) : timestamp);
         if (requestId is not null) request.Headers.Add("requestId", requestId);
         return (client ?? _factory.CreateClient()).SendAsync(request);
     }

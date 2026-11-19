@@ -19,6 +19,7 @@ builder.Services.AddProblemDetails(); // required by UseExceptionHandler; Envelo
 builder.Services.AddOpenApi();
 
 builder.Services.AddCqrs(AssemblyReference.Assembly);
+builder.Services.AddScoped<Ecommerce.Application.Features.Authen.Common.CallerCredential>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>() ?? new JwtOptions();

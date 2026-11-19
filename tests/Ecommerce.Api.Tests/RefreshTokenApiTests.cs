@@ -64,7 +64,7 @@ public sealed class RefreshTokenApiTests : IClassFixture<WebApplicationFactory<P
     private Task<HttpResponseMessage> Send(object body, HttpClient? client = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, Path) { Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json") };
-        request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+        request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture));
         return (client ?? _factory.CreateClient()).SendAsync(request);
     }
 

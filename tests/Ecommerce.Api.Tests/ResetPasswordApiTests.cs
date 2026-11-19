@@ -65,7 +65,7 @@ public sealed class ResetPasswordApiTests : IClassFixture<WebApplicationFactory<
         {
             Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
         };
-        request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+        request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture));
         return (client ?? _factory.CreateClient()).SendAsync(request);
     }
 
