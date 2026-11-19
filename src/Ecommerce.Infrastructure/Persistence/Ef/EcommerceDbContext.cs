@@ -43,6 +43,13 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        MapTables(modelBuilder);
+        MapDatabaseDefaults(modelBuilder);
+        ApplyConventions(modelBuilder);
+    }
+
+    private static void MapTables(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<UserRecord>().ToTable("m_user", "authen");
         modelBuilder.Entity<UserPasswordRecord>().ToTable("m_user_password", "authen");
         modelBuilder.Entity<UserInformationRecord>().ToTable("m_user_information", "authen");
@@ -63,22 +70,34 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
         modelBuilder.Entity<UserRoleRecord>().ToTable("t_user_role", "author");
         modelBuilder.Entity<UserPermissionRecord>().ToTable("t_user_permission", "author");
         modelBuilder.Entity<PasswordResetRecord>().ToTable("t_user_reset_password", "authen");
+    }
 
+    private static void MapDatabaseDefaults(ModelBuilder modelBuilder)
+    {
+        // created_at comes from the database default unless the code sets it (spec inserts that bind now explicitly).
         modelBuilder.Entity<UserRecord>().Property(u => u.CreatedAt).HasDefaultValueSql("NOW()").ValueGeneratedOnAdd();
+        modelBuilder.Entity<UserAddressRecord>().Property(a => a.CreatedAt).HasDefaultValueSql("NOW()").ValueGeneratedOnAdd();
+    }
 
+    /// <summary>snake_case columns, UTC times and database-generated ids for every mapped table.</summary>
+    private static void ApplyConventions(ModelBuilder modelBuilder)
+    {
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
         {
-            foreach (var property in entity.GetProperties())
-            {
-                property.SetColumnName(SnakeCase(property.Name));
-                // The columns hold UTC without a time zone; a value read back must be UTC too, or Npgsql refuses to send it again.
-                if (property.ClrType == typeof(DateTime)) property.SetValueConverter(UtcDateTime);
-                if (property.ClrType == typeof(DateTime?)) property.SetValueConverter(UtcNullableDateTime);
-            }
+            foreach (var property in entity.GetProperties()) ApplyColumnConventions(property);
 
             // Ids come from the database default (INSERT ... RETURNING id), as in the spec SQL.
             entity.FindPrimaryKey()!.Properties[0].SetDefaultValueSql("GEN_RANDOM_UUID()");
         }
+    }
+
+    private static void ApplyColumnConventions(Microsoft.EntityFrameworkCore.Metadata.IMutableProperty property)
+    {
+        property.SetColumnName(SnakeCase(property.Name));
+
+        // The columns hold UTC without a time zone; a value read back must be UTC too, or Npgsql refuses to send it again.
+        if (property.ClrType == typeof(DateTime)) property.SetValueConverter(UtcDateTime);
+        if (property.ClrType == typeof(DateTime?)) property.SetValueConverter(UtcNullableDateTime);
     }
 
     private static readonly Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime> UtcDateTime =

@@ -70,6 +70,9 @@ public sealed class SecurityOptions
     /// <summary>Spec 05-refresh-token: a consumed refresh token used again within this many seconds is a concurrent duplicate.</summary>
     public int RefreshReuseGraceSeconds { get; init; } = 10;
 
+    /// <summary>Spec 09-upsert-user-address: the most non-DELETED addresses one user may keep.</summary>
+    public int MaxAddressesPerUser { get; init; } = 10;
+
     internal byte[] DecodeFieldKey()
     {
         try
