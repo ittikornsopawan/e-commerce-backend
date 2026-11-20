@@ -68,6 +68,9 @@ Needs the `authen` and `consent` schemas from the [Showcase database migrations]
 export Database__ConnectionString="Host=localhost;Port=5432;Database=ecommerce;Username=postgres;Password=..."
 export Jwt__SigningKey="$(openssl rand -base64 48)"
 export Security__FieldEncryptionKey="$(openssl rand -base64 32)"   # keep it: losing it makes username/email/name unreadable
+# private key per key id for the encrypted request fields of 01-04 (RSA, at least 3072 bits); the frontend gets only the public key and the id
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out fe-2026-11.pem
+export Security__FieldTransport__Keys__fe-2026-11="$(cat fe-2026-11.pem)"
 dotnet run --project src/Ecommerce.Api
 ```
 
@@ -76,6 +79,8 @@ dotnet test
 ```
 
 ## Notes
+
+- The sensitive fields of register, login, reset-password and create-new-password arrive encrypted (headers `encryptionKeyId`, `encryptedKey`; per field AES-256-GCM, JSON path as AAD) and are decrypted in `EncryptedFieldsFilter` before validation. Any failure is `400 E10001 Encrypted fields could not be decrypted.` See api-conventions "Encrypted sensitive fields".
 
 - `authen.m_user.username`, `email_address`, `first_name`, `last_name` are `bytea`. They are encrypted deterministically (AES-256-CBC with a synthetic IV) so `WHERE username = @x` still works.
 - Passwords: PBKDF2-HMAC-SHA256, 600k iterations, 16-byte salt. Access, refresh and reset tokens are stored as SHA-256 hashes.

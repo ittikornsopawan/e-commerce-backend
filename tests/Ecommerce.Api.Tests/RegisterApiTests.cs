@@ -33,6 +33,7 @@ public sealed class RegisterApiTests : IClassFixture<WebApplicationFactory<Progr
             .UseSetting("Database:ConnectionString", postgres.ConnectionString)
             .UseSetting("Jwt:SigningKey", "unit-test-signing-key-0123456789-abcdef")
             .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey))
+            .UseFieldTransportKey()
             .UseSetting("RateLimit:StrictPerMinute", "10000"));
     }
 
@@ -71,7 +72,9 @@ public sealed class RegisterApiTests : IClassFixture<WebApplicationFactory<Progr
 
     private Task<HttpResponseMessage> Send(string body, string? timestamp = "now", string contentType = "application/json", string? requestId = "req-test", HttpClient? client = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, Path) { Content = new StringContent(body, Encoding.UTF8) };
+        var request = new HttpRequestMessage(HttpMethod.Post, Path);
+        request.Content = new StringContent(FieldTransportClient.Seal(request, body, "username", "emailAddress", "password", "firstName", "lastName", "phoneNumber", "address",
+            "addresses.address", "addresses.city", "addresses.state", "addresses.postalCode", "addresses.country"), Encoding.UTF8);
         request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
         if (timestamp is not null) request.Headers.Add("timestamp", timestamp == "now" ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture) : timestamp);
         if (requestId is not null) request.Headers.Add("requestId", requestId);

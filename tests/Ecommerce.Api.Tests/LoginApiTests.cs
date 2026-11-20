@@ -36,6 +36,7 @@ public sealed class LoginApiTests : IClassFixture<WebApplicationFactory<Program>
             .UseSetting("Database:ConnectionString", postgres.ConnectionString)
             .UseSetting("Jwt:SigningKey", SigningKey)
             .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey))
+            .UseFieldTransportKey()
             .UseSetting("RateLimit:StrictPerMinute", "10000"));
     }
 
@@ -51,10 +52,8 @@ public sealed class LoginApiTests : IClassFixture<WebApplicationFactory<Program>
 
     private Task<HttpResponseMessage> Send(object body, HttpClient? client = null, string requestId = "req-test")
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, Path)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
-        };
+        var request = new HttpRequestMessage(HttpMethod.Post, Path);
+        request.Content = new StringContent(FieldTransportClient.Seal(request, JsonSerializer.Serialize(body), "username", "password"), Encoding.UTF8, "application/json");
         request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture));
         request.Headers.Add("requestId", requestId);
         return (client ?? _factory.CreateClient()).SendAsync(request);
