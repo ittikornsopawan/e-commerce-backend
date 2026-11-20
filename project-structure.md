@@ -5,6 +5,8 @@ description: Explain the existing backend layers, feature conventions and depend
 
 # Project Structure
 
+> **Outdated (2026-11-20):** this file describes the first scaffold (`api/authen` routes, the Dapper path, `GetCurrentUser`), which has been removed. The current structure is in [README.md](README.md) and the Showcase Function Book; a rewrite is pending.
+
 The e-commerce backend is written in .NET 11 using **CQRS organised by feature**. It is split into 5 projects, one per layer of the code.
 All projects are in `Ecommerce.sln`.
 

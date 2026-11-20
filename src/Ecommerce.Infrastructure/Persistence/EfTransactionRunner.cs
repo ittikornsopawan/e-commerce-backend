@@ -19,13 +19,13 @@ internal sealed class EfTransactionRunner(EcommerceDbContext db) : ITransactionR
     private const int MaxAttempts = 3;
 
     public async Task<Result<T>> RunAsync<T>(
-        IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken cancellationToken)
+        IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken cancellationToken, bool readOnly = false)
     {
         for (var attempt = 1; ; attempt++)
         {
             try
             {
-                return await AttemptAsync(isolation, work, cancellationToken);
+                return await AttemptAsync(isolation, readOnly, work, cancellationToken);
             }
             catch (Exception exception) when (Find<PostgresException>(exception) is { SqlState: PostgresErrorCodes.SerializationFailure } && attempt < MaxAttempts)
             {
@@ -39,13 +39,15 @@ internal sealed class EfTransactionRunner(EcommerceDbContext db) : ITransactionR
         }
     }
 
-    /// <summary>One transaction: commit a success, roll back a failure result or an exception.</summary>
+    /// <summary>One transaction, read-only when asked: commit a success, roll back a failure result or an exception.</summary>
     private async Task<Result<T>> AttemptAsync<T>(
-        IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken cancellationToken)
+        IsolationLevel isolation, bool readOnly, Func<CancellationToken, Task<Result<T>>> work, CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(isolation, cancellationToken);
         try
         {
+            // One constant statement with no input (like AdvisoryLock); EF Core has no read-only option. Josh, 2026-11-20.
+            if (readOnly) await db.Database.ExecuteSqlRawAsync("SET TRANSACTION READ ONLY", cancellationToken);
             var result = await work(cancellationToken);
             if (result.IsSuccess) await transaction.CommitAsync(cancellationToken);
             else await transaction.RollbackAsync(cancellationToken);

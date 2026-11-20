@@ -61,7 +61,7 @@ public sealed class RateLimitTests(WebApplicationFactory<Program> factory) : ICl
 
         for (var i = 0; i < 5; i++)
         {
-            Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/authen/me")).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(JwtVerificationTests.ProfileProbe())).StatusCode);
         }
     }
 }

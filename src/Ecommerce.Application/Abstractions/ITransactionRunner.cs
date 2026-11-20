@@ -10,6 +10,8 @@ namespace Ecommerce.Application.Abstractions;
 /// </summary>
 public interface ITransactionRunner
 {
+    /// <param name="readOnly">The spec's READ ONLY transaction: any write inside it fails (PostgreSQL 25006).</param>
     /// <exception cref="TimeoutException">The database did not answer in time; everything was rolled back.</exception>
-    Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken cancellationToken);
+    Task<Result<T>> RunAsync<T>(
+        IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken cancellationToken, bool readOnly = false);
 }

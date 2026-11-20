@@ -23,7 +23,7 @@ public sealed class LogoutCommandHandlerTests
 
     private sealed class Runner(List<string> calls) : ITransactionRunner
     {
-        public async Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct)
+        public async Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct, bool readOnly = false)
         {
             calls.Add($"begin {isolation}");
             var result = await work(ct);

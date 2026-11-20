@@ -46,6 +46,14 @@ public sealed class JwtVerificationTests(WebApplicationFactory<Program> factory)
         [Token(sub: "not-a-uuid")]
     ];
 
+    /// <summary>GET v1/user/profile (spec 08) with a valid timestamp, so only the JWT decides between 401 and the handler.</summary>
+    internal static HttpRequestMessage ProfileProbe()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/v1/user/profile");
+        request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture));
+        return request;
+    }
+
     [Theory]
     [MemberData(nameof(BadTokens))]
     public async Task A_bad_token_answers_401_E10002_in_the_envelope(string? token)
@@ -53,7 +61,7 @@ public sealed class JwtVerificationTests(WebApplicationFactory<Program> factory)
         var client = Client();
         if (token is not null) client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var response = await client.GetAsync("/api/authen/me");
+        var response = await client.SendAsync(ProfileProbe());
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -70,9 +78,9 @@ public sealed class JwtVerificationTests(WebApplicationFactory<Program> factory)
         var client = Client();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token(roles: ["CUSTOMER"]));
 
-        var response = await client.GetAsync("/api/authen/me");
+        var response = await client.SendAsync(ProfileProbe());
 
-        // The handler needs the database, which is not reachable here; reaching it proves the token was accepted.
+        // The handler then needs the database, which is not reachable here; reaching it proves the token was accepted.
         Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 

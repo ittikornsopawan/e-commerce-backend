@@ -9,7 +9,7 @@ using Ecommerce.Shared.Results;
 namespace Ecommerce.Application.Features.Authen.GetUserProfile;
 
 /// <summary>
-/// Orchestrates spec 08: one REPEATABLE READ snapshot (no lock, no write) → fresh now and JWT expiry recheck → the user
+/// Orchestrates spec 08: one REPEATABLE READ READ ONLY snapshot (no lock, no write) → fresh now and JWT expiry recheck → the user
 /// joined with the caller's current access token → only then the information row.
 /// </summary>
 public sealed class GetUserProfileQueryHandler(
@@ -35,7 +35,7 @@ public sealed class GetUserProfileQueryHandler(
                 return Result.Success(new UserProfileResponse(
                     caller.UserId, user.EmailAddress, user.FirstName, user.LastName, user.DisplayName, user.ProfilePicturePath,
                     information?.PhoneNumber, information?.Address, information?.DateOfBirth, information?.Gender));
-            }, cancellationToken);
+            }, cancellationToken, readOnly: true);
         }
         catch (TimeoutException)
         {
