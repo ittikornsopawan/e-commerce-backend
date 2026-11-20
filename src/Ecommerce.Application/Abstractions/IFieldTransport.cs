@@ -10,7 +10,8 @@ public interface IFieldTransport
     IFieldTransportSession? Open(string keyId, string encryptedKey);
 }
 
-public interface IFieldTransportSession
+/// <summary>Holds the request key in memory; dispose it when the request ends so the key is zeroed.</summary>
+public interface IFieldTransportSession : IDisposable
 {
     /// <summary>Plain text of one field, or null when the value cannot be decrypted for that JSON path.</summary>
     string? Decrypt(string path, string wireValue);

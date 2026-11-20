@@ -23,7 +23,7 @@ public sealed class EncryptedFieldsFilter(IFieldTransport transport) : IAsyncAct
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var headers = context.HttpContext.Request.Headers;
-        var session = transport.Open(headers[KeyIdHeader].ToString(), headers[KeyHeader].ToString());
+        using var session = transport.Open(headers[KeyIdHeader].ToString(), headers[KeyHeader].ToString());
         var argument = context.ActionArguments.FirstOrDefault(a => a.Value is IEncryptedRequest);
 
         if (session is not null && argument.Value is IEncryptedRequest request)
