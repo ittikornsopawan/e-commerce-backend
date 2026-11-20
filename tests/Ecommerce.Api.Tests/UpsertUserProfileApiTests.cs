@@ -40,16 +40,21 @@ public sealed class UpsertUserProfileApiTests : IClassFixture<WebApplicationFact
             .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey)));
     }
 
-    internal static string Jwt(string sub, string key = Key, int expiresInMinutes = 15) =>
-        new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false }.CreateToken(new SecurityTokenDescriptor
+    /// <summary>A JWT shaped like TokenService's (JsonWebTokenHandler); <paramref name="roles"/> null omits the claim.</summary>
+    internal static string Jwt(string sub, string key = Key, int expiresInMinutes = 15, object? roles = null)
+    {
+        var claims = new Dictionary<string, object> { ["sub"] = sub, ["jti"] = Guid.NewGuid().ToString() };
+        if (roles is not null) claims["roles"] = roles;
+        return new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false }.CreateToken(new SecurityTokenDescriptor
         {
             Issuer = "ecommerce",
             Audience = "ecommerce-api",
             IssuedAt = DateTime.UtcNow.AddMinutes(-1),
             Expires = DateTime.UtcNow.AddMinutes(expiresInMinutes),
-            Claims = new Dictionary<string, object> { ["sub"] = sub, ["jti"] = Guid.NewGuid().ToString() },
+            Claims = claims,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256)
         });
+    }
 
     /// <summary>A user (with an information row when <paramref name="withInformation"/>) and a stored ACTIVE access token.</summary>
     private async Task<(Guid UserId, string Jwt)> CallerAsync(bool withInformation = true)

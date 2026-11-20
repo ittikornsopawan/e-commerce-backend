@@ -15,7 +15,10 @@ public static class VerifiedCaller
         var user = controller.User;
         return user.Identity?.IsAuthenticated == true && header.StartsWith("Bearer ", StringComparison.Ordinal)
                && user.TryGetUserId(out var userId) && user.TryGetExpiresAt(out var expiresAt)
-            ? new Caller(userId, header["Bearer ".Length..], expiresAt)
+            ? Build(userId, header["Bearer ".Length..], expiresAt)
             : null;
     }
+
+    private static Caller Build(Guid userId, string jwt, DateTime expiresAt) =>
+        new(userId, jwt, expiresAt, CallerClaims.TryGetRoles(jwt, out var roles) ? roles : null);
 }

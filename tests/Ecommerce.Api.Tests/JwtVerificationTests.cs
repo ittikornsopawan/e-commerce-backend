@@ -85,17 +85,30 @@ public sealed class JwtVerificationTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public void Caller_claims_read_the_uuid_sub_and_the_exact_PLATFORM_ADMIN_role()
+    public void Caller_claims_read_the_uuid_sub()
     {
         var id = Guid.NewGuid();
-        var admin = new ClaimsPrincipal(new ClaimsIdentity(
-            [new Claim("sub", id.ToString()), new Claim("roles", "PLATFORM_ADMIN"), new Claim("roles", "CUSTOMER")], "jwt"));
-        var lower = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", id.ToString()), new Claim("roles", "platform_admin")], "jwt"));
-
-        Assert.True(admin.TryGetUserId(out var parsed));
+        Assert.True(new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", id.ToString())], "jwt")).TryGetUserId(out var parsed));
         Assert.Equal(id, parsed);
-        Assert.True(admin.IsPlatformAdmin());
-        Assert.False(lower.IsPlatformAdmin());
         Assert.False(new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "x")], "jwt")).TryGetUserId(out _));
+    }
+
+    private static Ecommerce.Application.Features.Authen.Common.Caller CallerWith(IReadOnlyList<string> roles) => new(Guid.NewGuid(), "jwt", DateTime.UtcNow, roles);
+
+    [Fact]
+    public void The_roles_claim_is_an_array_of_unique_non_empty_names_and_PLATFORM_ADMIN_is_exact()
+    {
+        var sub = Guid.NewGuid().ToString();
+        Assert.True(CallerClaims.TryGetRoles(UpsertUserProfileApiTests.Jwt(sub, roles: new[] { "PLATFORM_ADMIN", "CUSTOMER" }), out var admin));
+        Assert.True(CallerWith(admin).IsPlatformAdmin);
+        Assert.True(CallerClaims.TryGetRoles(UpsertUserProfileApiTests.Jwt(sub, roles: new[] { "platform_admin" }), out var lower));
+        Assert.False(CallerWith(lower).IsPlatformAdmin);
+        Assert.True(CallerClaims.TryGetRoles(UpsertUserProfileApiTests.Jwt(sub, roles: Array.Empty<string>()), out var none));
+        Assert.Empty(none);
+
+        Assert.False(CallerClaims.TryGetRoles(UpsertUserProfileApiTests.Jwt(sub), out _));                                  // missing
+        Assert.False(CallerClaims.TryGetRoles(UpsertUserProfileApiTests.Jwt(sub, roles: "PLATFORM_ADMIN"), out _));        // not an array
+        Assert.False(CallerClaims.TryGetRoles(UpsertUserProfileApiTests.Jwt(sub, roles: new[] { "A", "A" }), out _));      // duplicated
+        Assert.False(CallerClaims.TryGetRoles(UpsertUserProfileApiTests.Jwt(sub, roles: new[] { "" }), out _));            // empty name
     }
 }

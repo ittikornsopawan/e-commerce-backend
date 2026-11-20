@@ -1,0 +1,37 @@
+using System.Text.Json;
+using Ecommerce.Api.Contracts;
+using Ecommerce.Api.Contracts.Author;
+using Ecommerce.Api.Extensions;
+using Ecommerce.Api.Security;
+using Ecommerce.Application.Features.Author.UpsertRole;
+using Ecommerce.Shared.Cqrs;
+using Ecommerce.Shared.Results;
+using Ecommerce.Shared.Validation;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Ecommerce.Api.Controllers;
+
+/// <summary>v1/author APIs of the author specs (roles, permissions, scopes and their grants); platform administrators only.</summary>
+[ApiController]
+[Route("v1/author")]
+public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
+{
+    /// <summary>Spec 01-upsert-role: insert 201, update and archive 200 (data.roleId), delete 204 with no body.</summary>
+    [HttpPost("role/upsert")]
+    public async Task<IActionResult> UpsertRole([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = JsonBody.TryRead(body, RoleBody.Fields, out var b, uniqueKeys: true);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("Role.Shape", message)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new UpsertRoleCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("name").Value, b.String("description").Value, b.String("rowStatus")),
+            cancellationToken);
+
+        return result.IsSuccess ? this.ToUpsert(result.Value.Action, "Role", new { roleId = result.Value.RoleId }) : result.ToFailure(this);
+    }
+
+    /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
+    private string? NoQuery() =>
+        Request.Query.Count == 0 ? null : ValidationMessages.Combine(Request.Query.Keys.Select(ValidationMessages.UnknownField));
+}
