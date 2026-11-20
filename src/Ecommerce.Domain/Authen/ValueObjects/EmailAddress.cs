@@ -1,10 +1,9 @@
-using System.Net.Mail;
 using Ecommerce.Domain.Common;
 using Ecommerce.Shared.Results;
 
 namespace Ecommerce.Domain.Authen.ValueObjects;
 
-/// <summary>A plain address (no display name), at most 254 characters, stored lower-case.</summary>
+/// <summary>A valid address (<see cref="EmailAddressFormat"/>), trimmed and stored lower-case.</summary>
 public sealed class EmailAddress : ValueObject
 {
     private EmailAddress(string value)
@@ -18,12 +17,7 @@ public sealed class EmailAddress : ValueObject
     {
         var value = (raw ?? string.Empty).Trim().ToLowerInvariant();
 
-        var valid = value.Length is > 0 and <= 254
-            && MailAddress.TryCreate(value, out var parsed)
-            && parsed.Address == value
-            && value.Contains('.', StringComparison.Ordinal);
-
-        return valid ? new EmailAddress(value) : Error.Validation("Email.Invalid", "Email address is not valid.");
+        return EmailAddressFormat.IsValid(value) ? new EmailAddress(value) : Error.Validation("Email.Invalid", "Email address is not valid.");
     }
 
     public static EmailAddress Restore(string value) => new(value);

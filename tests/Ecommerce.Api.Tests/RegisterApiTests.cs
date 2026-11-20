@@ -237,6 +237,10 @@ public sealed class RegisterApiTests : IClassFixture<WebApplicationFactory<Progr
     [InlineData("referrerId", "abc", "Referrer Id must be a valid UUID.")]
     [InlineData("emailAddress", "abc", "Email Address must be a valid email address.")]
     [InlineData("emailAddress", "a@b@c", "Email Address must be a valid email address.")]
+    [InlineData("emailAddress", "a.b@c", "Email Address must be a valid email address.")]
+    [InlineData("emailAddress", "a b@shop.co", "Email Address must be a valid email address.")]
+    [InlineData("emailAddress", "A <a@shop.co>", "Email Address must be a valid email address.")]
+    [InlineData("emailAddress", " a.b@shop.co", "Email Address must be a valid email address.")]
     public async Task TC_REG_006_format_of_scalars(string field, string value, string message)
     {
         var body = Valid();

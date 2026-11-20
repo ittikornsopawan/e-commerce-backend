@@ -124,6 +124,9 @@ public sealed class ResetPasswordApiTests : IClassFixture<WebApplicationFactory<
     [InlineData("", "Email Address is required and must be a valid email address.")]
     [InlineData("abc", "Email Address is required and must be a valid email address.")]
     [InlineData("a@b@c", "Email Address is required and must be a valid email address.")]
+    [InlineData("a.b@c", "Email Address is required and must be a valid email address.")]
+    [InlineData("a b@shop.co", "Email Address is required and must be a valid email address.")]
+    [InlineData("A <a@shop.co>", "Email Address is required and must be a valid email address.")]
     public async Task TC_RESET_002_an_invalid_email_address_is_400(string? email, string message)
     {
         await Status(await Send(email is null ? new { } : new { emailAddress = email }), 400, "E10001", message);
