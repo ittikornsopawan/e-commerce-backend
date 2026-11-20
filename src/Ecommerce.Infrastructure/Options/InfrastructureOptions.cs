@@ -47,12 +47,21 @@ public sealed class JwtOptions
     }
 }
 
+public sealed class FieldTransportOptions
+{
+    /// <summary>Private key (PEM, RSA of at least 3072 bits) of every active key id. Secrets: never in the repository.</summary>
+    public Dictionary<string, string> Keys { get; init; } = [];
+}
+
 public sealed class SecurityOptions
 {
     public const string Section = "Security";
 
     /// <summary>Base64 of 32 random bytes. Protects the bytea columns of authen.m_user. Losing it makes those columns unreadable.</summary>
     public string FieldEncryptionKey { get; init; } = string.Empty;
+
+    /// <summary>Field transport of api-conventions "Encrypted sensitive fields".</summary>
+    public FieldTransportOptions FieldTransport { get; init; } = new();
 
     public int PasswordResetMinutes { get; init; } = 30;
 

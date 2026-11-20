@@ -33,6 +33,7 @@ public sealed class CreateNewPasswordApiTests : IClassFixture<WebApplicationFact
             .UseSetting("Database:ConnectionString", postgres.ConnectionString)
             .UseSetting("Jwt:SigningKey", "unit-test-signing-key-0123456789-abcdef")
             .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey))
+            .UseFieldTransportKey()
             .UseSetting("RateLimit:StrictPerMinute", "10000"));
     }
 
@@ -61,7 +62,8 @@ public sealed class CreateNewPasswordApiTests : IClassFixture<WebApplicationFact
 
     private Task<HttpResponseMessage> Send(object body, HttpClient? client = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, Path) { Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json") };
+        var request = new HttpRequestMessage(HttpMethod.Post, Path);
+        request.Content = new StringContent(FieldTransportClient.Seal(request, JsonSerializer.Serialize(body), "resetToken", "newPassword"), Encoding.UTF8, "application/json");
         request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture));
         return (client ?? _factory.CreateClient()).SendAsync(request);
     }

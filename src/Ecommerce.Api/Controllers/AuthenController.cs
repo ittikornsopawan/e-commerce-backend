@@ -1,5 +1,6 @@
 using Ecommerce.Api.Contracts.Authen;
 using Ecommerce.Api.Extensions;
+using Ecommerce.Api.Filters;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Authen.CreateNewPassword;
 using Ecommerce.Application.Features.Authen.Login;
@@ -21,6 +22,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 {
     /// <summary>Spec 01-register: 201 S10000 with data.userId.</summary>
     [EnableRateLimiting(RateLimiting.Strict)]
+    [EncryptedFields]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -39,6 +41,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 
     /// <summary>Spec 02-login: 200 S10000 with the token pair; every failure is the same 401 E10002.</summary>
     [EnableRateLimiting(RateLimiting.Strict)]
+    [EncryptedFields]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
     {
@@ -51,6 +54,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 
     /// <summary>Spec 03-reset-password: the same 200 for every business outcome, status only.</summary>
     [EnableRateLimiting(RateLimiting.Strict)]
+    [EncryptedFields]
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword(RequestPasswordResetBody request, CancellationToken cancellationToken)
     {
@@ -63,6 +67,7 @@ public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 
     /// <summary>Spec 04-create-new-password: 200 S10000 status only; every token problem is one 400.</summary>
     [EnableRateLimiting(RateLimiting.Strict)]
+    [EncryptedFields]
     [HttpPost("create-new-password")]
     public async Task<IActionResult> CreateNewPassword(CreateNewPasswordRequest request, CancellationToken cancellationToken)
     {

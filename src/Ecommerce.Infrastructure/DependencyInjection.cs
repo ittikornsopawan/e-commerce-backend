@@ -38,6 +38,7 @@ public static class DependencyInjection
     private static void AddSecurity(IServiceCollection services, SecurityOptions security)
     {
         services.AddSingleton(new FieldProtector(security.DecodeFieldKey()));
+        services.AddSingleton<IFieldTransport>(new FieldTransport(security.FieldTransport.Keys));
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IEmailSender, LoggingEmailSender>();
