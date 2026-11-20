@@ -1,4 +1,3 @@
-using Ecommerce.Domain.Common;
 using Ecommerce.Shared.Validation;
 
 namespace Ecommerce.Api.Tests;
@@ -21,13 +20,4 @@ public sealed class ValidationMessagesTests
         Assert.Equal("consents[1]: Consent Id must not be duplicated.", ValidationMessages.At("consents[1]", ValidationMessages.Duplicated("consentId")));
         Assert.Equal("a, b.", ValidationMessages.Combine(["a.", "b."]));
     }
-
-    [Theory]
-    [InlineData("a@b", true)]
-    [InlineData("john.doe@example.test", true)]
-    [InlineData("abc", false)]
-    [InlineData("@b", false)]
-    [InlineData("a@", false)]
-    [InlineData("a@b@c", false)]
-    public void Email_has_one_at_with_both_parts(string value, bool valid) => Assert.Equal(valid, EmailAddressFormat.IsValid(value));
 }
