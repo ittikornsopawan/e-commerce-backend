@@ -33,7 +33,7 @@ src/
 ├── Ecommerce.Api/
 │   ├── Program.cs                  composition root: filters, CQRS, Infrastructure, JWT, rate limits
 │   ├── Controllers/
-│   │   ├── AuthController.cs       v1/auth: specs 01-06
+│   │   ├── AuthenController.cs     v1/auth: specs 01-06
 │   │   └── UserController.cs       v1/user: specs 07-10
 │   ├── Contracts/
 │   │   ├── ApiEnvelope.cs          {status, data} of api-conventions
