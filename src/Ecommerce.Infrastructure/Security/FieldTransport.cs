@@ -16,7 +16,8 @@ internal sealed class FieldTransport : IFieldTransport
     private const int TagLength = 16;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
-    private readonly Dictionary<string, RSA> _privateKeys = [];
+    // RSA instances are not guaranteed thread-safe, so only the key parameters are kept; each Open builds its own RSA.
+    private readonly Dictionary<string, RSAParameters> _privateKeys = [];
 
     /// <param name="pemByKeyId">Private key (PEM) of every active key id, from Security:FieldTransport:Keys.</param>
     public FieldTransport(IReadOnlyDictionary<string, string> pemByKeyId)
@@ -40,18 +41,24 @@ internal sealed class FieldTransport : IFieldTransport
                 throw new InvalidOperationException($"Security:FieldTransport:Keys:{id} must be an RSA key of at least {MinRsaBits} bits.");
             }
 
-            _privateKeys[id] = rsa;
+            _privateKeys[id] = rsa.ExportParameters(true);
+            rsa.Dispose();
         }
     }
 
     public IFieldTransportSession? Open(string keyId, string encryptedKey)
     {
-        if (!_privateKeys.TryGetValue(keyId, out var rsa)) return null;
+        if (!_privateKeys.TryGetValue(keyId, out var parameters)) return null;
 
         try
         {
+            using var rsa = RSA.Create();
+            rsa.ImportParameters(parameters);
             var key = rsa.Decrypt(Convert.FromBase64String(encryptedKey), RSAEncryptionPadding.OaepSHA256);
-            return key.Length == KeyLength ? new Session(key) : null;
+            if (key.Length == KeyLength) return new Session(key);
+
+            CryptographicOperations.ZeroMemory(key);
+            return null;
         }
         catch (Exception e) when (e is FormatException or CryptographicException)
         {
@@ -61,6 +68,8 @@ internal sealed class FieldTransport : IFieldTransport
 
     private sealed class Session(byte[] key) : IFieldTransportSession
     {
+        public void Dispose() => CryptographicOperations.ZeroMemory(key);
+
         public string? Decrypt(string path, string wireValue)
         {
             try

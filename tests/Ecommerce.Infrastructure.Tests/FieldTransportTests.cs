@@ -59,6 +59,32 @@ public sealed class FieldTransportTests
     }
 
     [Fact]
+    public async Task Fifty_sessions_open_and_decrypt_in_parallel()
+    {
+        var results = await Task.WhenAll(Enumerable.Range(0, 50).Select(i => Task.Run(() =>
+        {
+            var key = RandomNumberGenerator.GetBytes(32);
+            using var session = Transport.Open("k1", Wrap(key));
+            return session?.Decrypt("password", Field(key, "password", $"Passw0rd-{i}"));
+        })));
+
+        Assert.Equal(Enumerable.Range(0, 50).Select(i => $"Passw0rd-{i}"), results);
+    }
+
+    [Fact]
+    public void A_disposed_session_no_longer_decrypts_because_its_key_is_zeroed()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var session = Transport.Open("k1", Wrap(key))!;
+        var wire = Field(key, "password", "x");
+        Assert.Equal("x", session.Decrypt("password", wire));
+
+        session.Dispose();
+
+        Assert.Null(session.Decrypt("password", wire));
+    }
+
+    [Fact]
     public void A_key_below_3072_bits_or_a_bad_pem_is_refused_at_startup()
     {
         using var small = RSA.Create(2048);
