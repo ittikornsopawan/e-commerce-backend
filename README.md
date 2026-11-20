@@ -12,7 +12,7 @@ This is the independent backend Component Repository for the [e-commerce Showcas
 - Source Showcase commit: `48c75ab59f27e915d0bff7acf4395eeaafca330a`.
 - History: the four commits affecting the former `e-commerce/repository/` subtree were retained with `git subtree split`; rewritten commit IDs are specific to this independent repository.
 - Imported tree: all 81 tracked files matched the original snapshot byte for byte before the documentation-only migration updates. Runtime source, tests and project configuration remain unchanged.
-- The code now implements the approved authen-and-author specs 01–10 of the Showcase (`e-commerce/doc/api/authen-and-author/`). [code.md](code.md) and [project-structure.md](project-structure.md) still describe the first scaffold and are outdated; the shared functions are listed in the Showcase Function Book (`e-commerce/doc/function-book.md`).
+- The code implements the approved authen-and-author specs 01–10 of the Showcase (`e-commerce/doc/api/authen-and-author/`). [project-structure.md](project-structure.md) lists the files and how to add a use case; [code.md](code.md) (Thai) explains the request flow, transactions, errors and tests; the shared functions are in the Showcase Function Book (`e-commerce/doc/function-book.md`).
 
 CQRS, organised by feature. Controllers are the only entry point; infrastructure lives in its own project.
 
