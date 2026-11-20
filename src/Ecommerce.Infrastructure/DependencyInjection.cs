@@ -4,6 +4,8 @@ using Ecommerce.Infrastructure.Email;
 using Ecommerce.Infrastructure.Options;
 using Ecommerce.Infrastructure.Persistence;
 using Ecommerce.Infrastructure.Persistence.Authen;
+using Ecommerce.Infrastructure.Persistence.Author;
+using Ecommerce.Domain.Author.Repositories;
 using Ecommerce.Infrastructure.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IUserProfileQueryRepository, UserProfileQueryRepository>();
         services.AddScoped<IUserAddressQueryRepository, UserAddressQueryRepository>();
         services.AddScoped<IUserAddressRepository, UserAddressRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
     }
 
     private static void AddAuthenSettings(IServiceCollection services, SecurityOptions security)

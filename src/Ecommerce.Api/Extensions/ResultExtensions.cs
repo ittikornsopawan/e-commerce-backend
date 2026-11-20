@@ -1,4 +1,5 @@
 using Ecommerce.Api.Contracts;
+using Ecommerce.Application.Common;
 using Ecommerce.Shared.Results;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,4 +22,14 @@ public static class ResultExtensions
         return new ObjectResult(envelope) { StatusCode = httpCode };
     }
 
+    /// <summary>
+    /// The answer of an upsert: Insert 201 "Insert {entity} Success", Update and Archive 200 "Update/Archive {entity}
+    /// Success", Delete 204 with no body (specs 09 and the author upserts).
+    /// </summary>
+    public static IActionResult ToUpsert<T>(this ControllerBase controller, UpsertAction action, string entity, T data) => action switch
+    {
+        UpsertAction.Insert => controller.ToSuccess(StatusCodes.Status201Created, "Created", $"Insert {entity} Success", data),
+        UpsertAction.Delete => controller.NoContent(),
+        _ => controller.ToSuccess(StatusCodes.Status200OK, "Ok", $"{action} {entity} Success", data)
+    };
 }

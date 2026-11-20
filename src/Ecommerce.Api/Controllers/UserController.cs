@@ -59,14 +59,9 @@ public sealed class UserController(IDispatcher dispatcher) : ControllerBase
             b.String("city").Value, b.String("state").Value, b.String("postalCode").Value, b.String("country").Value, b.String("rowStatus")),
             cancellationToken);
 
-        if (result.IsFailure) return result.ToFailure(this);
-        var data = new { userAddressId = result.Value.UserAddressId };
-        return result.Value.Action switch
-        {
-            AddressAction.Insert => this.ToSuccess(StatusCodes.Status201Created, "Created", "Insert User Address Success", data),
-            AddressAction.Update => this.ToSuccess(StatusCodes.Status200OK, "Ok", "Update User Address Success", data),
-            _ => NoContent()
-        };
+        return result.IsSuccess
+            ? this.ToUpsert(result.Value.Action, "User Address", new { userAddressId = result.Value.UserAddressId })
+            : result.ToFailure(this);
     }
 
     private static readonly HashSet<string> AddressQueryKeys = ["id", "pageIndex", "pageSize", "search", "rowStatus"];

@@ -1,3 +1,4 @@
+using Ecommerce.Application.Common;
 using Ecommerce.Application.Features.Authen.Common;
 using Ecommerce.Shared;
 using Ecommerce.Shared.Cqrs;
@@ -20,12 +21,5 @@ public sealed record UpsertUserAddressCommand(
     string? Country,
     Optional<string?> RowStatus) : ICommand<UpsertUserAddressResult>;
 
-public enum AddressAction
-{
-    Insert,
-    Update,
-    Delete
-}
-
 /// <summary>The written address and what happened; the API answers 201, 200 or 204 from <c>Action</c>.</summary>
-public sealed record UpsertUserAddressResult(Guid UserAddressId, AddressAction Action);
+public sealed record UpsertUserAddressResult(Guid UserAddressId, UpsertAction Action);

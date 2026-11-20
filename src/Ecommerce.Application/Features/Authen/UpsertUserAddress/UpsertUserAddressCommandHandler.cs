@@ -58,7 +58,7 @@ public sealed class UpsertUserAddressCommandHandler(
         if (decision.IsDefault) await addresses.ClearDefaultAsync(t.UserId, null, now, ct);
 
         var id = await addresses.InsertAsync(t.UserId, t.Values, t.RowStatus, decision.IsDefault, now, ct);
-        return Result.Success(new UpsertUserAddressResult(id, AddressAction.Insert));
+        return Result.Success(new UpsertUserAddressResult(id, UpsertAction.Insert));
     }
 
     private async Task<Result<UpsertUserAddressResult>> UpdateAsync(Target t, DateTime now, CancellationToken ct)
@@ -73,7 +73,7 @@ public sealed class UpsertUserAddressCommandHandler(
             return Result.Failure<UpsertUserAddressResult>(AuthenErrors.AddressNotFound);
 
         if (decision.ShouldPromote) await addresses.PromoteDefaultAsync(t.UserId, now, ct);
-        var action = t.RowStatus == "DELETED" ? AddressAction.Delete : AddressAction.Update;
+        var action = t.RowStatus == "DELETED" ? UpsertAction.Delete : UpsertAction.Update;
         return Result.Success(new UpsertUserAddressResult(id, action));
     }
 
