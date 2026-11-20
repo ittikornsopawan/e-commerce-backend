@@ -17,7 +17,7 @@ namespace Ecommerce.Api.Controllers;
 /// <summary>v1/auth APIs of the authen-and-author specs.</summary>
 [ApiController]
 [Route("v1/auth")]
-public sealed class AuthController(IDispatcher dispatcher) : ControllerBase
+public sealed class AuthenController(IDispatcher dispatcher) : ControllerBase
 {
     /// <summary>Spec 01-register: 201 S10000 with data.userId.</summary>
     [EnableRateLimiting(RateLimiting.Strict)]
