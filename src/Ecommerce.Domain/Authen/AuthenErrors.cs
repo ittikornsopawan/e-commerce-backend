@@ -4,23 +4,11 @@ namespace Ecommerce.Domain.Authen;
 
 public static class AuthenErrors
 {
-    public static readonly Error UsernameTaken =
-        Error.Conflict("Authen.UsernameTaken", "This username is already taken.");
-
-    public static readonly Error EmailTaken =
-        Error.Conflict("Authen.EmailTaken", "This email is already registered.");
-
     public static readonly Error InvalidCredentials =
         Error.Unauthorized("Authen.InvalidCredentials", "Invalid username or password."); // spec 02-login: one answer for every failure
 
-    public static readonly Error AccountNotActive =
-        Error.Forbidden("Authen.AccountNotActive", "This account is not active.");
-
     public static readonly Error InvalidResetToken =
         Error.Validation("Authen.InvalidResetToken", "Reset token is invalid or expired."); // spec 04: one answer for every token case
-
-    public static readonly Error UserNotFound =
-        Error.NotFound("Authen.UserNotFound", "User was not found.");
 
     // Spec 01-register messages.
     public static readonly Error RequiredFieldsMissing =
