@@ -74,6 +74,8 @@ export Security__FieldTransport__Keys__fe-2026-11="$(cat fe-2026-11.pem)"
 dotnet run --project src/Ecommerce.Api
 ```
 
+In Development, Swagger UI is at `http://localhost:5056/swagger` (the OpenAPI document is `/openapi/v1.json`). The four encrypted endpoints (register, login, reset-password, create-new-password) need their fields encrypted first, so "Try it out" works only for the others.
+
 ```bash
 dotnet test
 ```
