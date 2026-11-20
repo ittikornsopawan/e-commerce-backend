@@ -34,7 +34,7 @@ public sealed class UpsertUserProfileCommandHandlerTests
 
     private sealed class Runner : ITransactionRunner
     {
-        public Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct) => work(ct);
+        public Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct, bool readOnly = false) => work(ct);
     }
 
     private readonly Credentials _credentials = new();

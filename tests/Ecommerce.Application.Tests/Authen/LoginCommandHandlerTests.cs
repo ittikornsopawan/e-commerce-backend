@@ -46,7 +46,7 @@ public sealed class LoginCommandHandlerTests
     private sealed class Runner : ITransactionRunner
     {
         public IsolationLevel? Isolation { get; private set; }
-        public Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct)
+        public Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct, bool readOnly = false)
         {
             Isolation = isolation;
             return work(ct);

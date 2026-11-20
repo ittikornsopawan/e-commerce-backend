@@ -22,9 +22,11 @@ public sealed class GetUserProfileQueryHandlerTests
     private sealed class Runner : ITransactionRunner
     {
         public IsolationLevel? Isolation { get; private set; }
-        public Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct)
+        public bool ReadOnly { get; private set; }
+        public Task<Result<T>> RunAsync<T>(IsolationLevel isolation, Func<CancellationToken, Task<Result<T>>> work, CancellationToken ct, bool readOnly = false)
         {
             Isolation = isolation;
+            ReadOnly = readOnly;
             return work(ct);
         }
     }
@@ -43,6 +45,7 @@ public sealed class GetUserProfileQueryHandlerTests
         Assert.Equal(Caller.UserId, result.Value.UserId);
         Assert.Null(result.Value.PhoneNumber);
         Assert.Equal(IsolationLevel.RepeatableRead, _runner.Isolation);
+        Assert.True(_runner.ReadOnly);
         Assert.Equal(["user", "information"], _profiles.Calls);
     }
 

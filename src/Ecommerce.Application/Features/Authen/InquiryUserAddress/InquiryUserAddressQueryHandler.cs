@@ -11,7 +11,7 @@ using Ecommerce.Shared.Results;
 namespace Ecommerce.Application.Features.Authen.InquiryUserAddress;
 
 /// <summary>
-/// Orchestrates spec 10 in one REPEATABLE READ snapshot with no lock and no write: the current credential, the count,
+/// Orchestrates spec 10 in one REPEATABLE READ READ ONLY snapshot with no lock and no write: the current credential, the count,
 /// the page only when the count is positive, a row-count check against the count, then the mapping.
 /// </summary>
 public sealed class InquiryUserAddressQueryHandler(
@@ -26,7 +26,7 @@ public sealed class InquiryUserAddressQueryHandler(
 
         try
         {
-            return await transactions.RunAsync(IsolationLevel.RepeatableRead, ct => ReadAsync(caller, Filter(caller, request), page, ct), cancellationToken);
+            return await transactions.RunAsync(IsolationLevel.RepeatableRead, ct => ReadAsync(caller, Filter(caller, request), page, ct), cancellationToken, readOnly: true);
         }
         catch (TimeoutException)
         {
