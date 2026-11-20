@@ -10,6 +10,8 @@ source_showcase_revision: bd2fa1cade2a449074198cc53586ff7bb531ebf5
 
 # คู่มือโครงสร้างและการเขียนโค้ด E-commerce Backend
 
+> **Outdated (2026-11-20):** this file describes the first scaffold (`api/authen` routes, the Dapper path, `GetCurrentUser`), which has been removed. The current structure is in [README.md](README.md) and the Showcase Function Book; a rewrite is pending.
+
 ## 1. ขอบเขตและวิธีอ่านเอกสาร
 
 เอกสารนี้อธิบาย backend ภายใน Component Repository ที่ materialize ใต้ `e-commerce/repository/e-commerce-backend/` จาก source code ที่ตรวจเมื่อวันที่ 7 พฤศจิกายน 2026 พร้อมหลักแบ่งหน้าที่ของ Domain, Application และ Infrastructure เพื่อใช้คุยเรื่อง architecture และเป็นข้อมูลประกอบการ review diagram ในรอบถัดไป

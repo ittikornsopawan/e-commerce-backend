@@ -12,23 +12,24 @@ This is the independent backend Component Repository for the [e-commerce Showcas
 - Source Showcase commit: `48c75ab59f27e915d0bff7acf4395eeaafca330a`.
 - History: the four commits affecting the former `e-commerce/repository/` subtree were retained with `git subtree split`; rewritten commit IDs are specific to this independent repository.
 - Imported tree: all 81 tracked files matched the original snapshot byte for byte before the documentation-only migration updates. Runtime source, tests and project configuration remain unchanged.
-- This is the reproducible legacy Authen implementation, with the known API/specification gaps recorded in [code.md](code.md). A manifest pin does not imply that the latest API specifications are fully implemented.
+- The code now implements the approved authen-and-author specs 01–10 of the Showcase (`e-commerce/doc/api/authen-and-author/`). [code.md](code.md) and [project-structure.md](project-structure.md) still describe the first scaffold and are outdated; the shared functions are listed in the Showcase Function Book (`e-commerce/doc/function-book.md`).
 
 CQRS, organised by feature. Controllers are the only entry point; infrastructure lives in its own project.
 
 ```
 src/
-  Ecommerce.Api             Controllers, request contracts, JWT auth, Program.cs (composition root)
+  Ecommerce.Api             Controllers, request contracts, JWT verification, envelope, filters, rate limits, Program.cs
   Ecommerce.Application     Features/<Feature>/<UseCase>/: command or query, handler, validator, response
-                            Features/<Feature>/Mapping/: domain -> response mapping
-                            Abstractions/: ports the handlers need (unit of work, hasher, tokens, email)
-  Ecommerce.Domain          <Feature>/Entities, ValueObjects, Repositories (interfaces), errors, enums
-                            Common/: Entity, ValueObject, IAggregateRoot
-  Ecommerce.Infrastructure  Dapper + Npgsql repositories, PBKDF2 hasher, JWT/token service, field encryption, email stub
-  Ecommerce.Shared          Result/Error and the CQRS building blocks (ICommand, IQuery, handlers, validators, dispatcher)
+                            Abstractions/: ports the handlers need (transaction runner, hasher, tokens, email)
+  Ecommerce.Domain          <Feature>/Domain (business rules), ValueObjects, Repositories (interfaces), errors
+  Ecommerce.Infrastructure  EF Core + Npgsql repositories (LINQ), transaction runner, PBKDF2 hasher, JWT/token service,
+                            field encryption, email stub
+  Ecommerce.Shared          Result/Error, validation messages, paging and the CQRS building blocks
 tests/
-  Ecommerce.Domain.Tests        Value objects and entities
-  Ecommerce.Application.Tests   Handlers with in-memory fakes (no database)
+  Ecommerce.Domain.Tests          Business rules and value objects
+  Ecommerce.Application.Tests     Handlers with in-memory fakes (no database)
+  Ecommerce.Infrastructure.Tests  Repositories and the transaction runner on a throw-away PostgreSQL 17
+  Ecommerce.Api.Tests             Each spec's test cases through the HTTP pipeline and the real database
 ```
 
 Dependencies point inwards:
@@ -39,22 +40,24 @@ Api ──> Application ──> Domain ──> Shared
 ```
 
 Domain and Application never reference Infrastructure. Repository interfaces live in Domain, and Infrastructure implements them.
-Business rules (username, email and password rules, "only active users sign in", reset-token expiry) live in Domain value objects and entities.
-Validators in Application only ask those value objects, so each rule exists once.
+Each use case runs in one transaction through `ITransactionRunner` at the spec's isolation level (read-only for inquiries).
 
 ## Features
 
-`Features/Authen`: `Register`, `Login`, `ResetPassword` (request + confirm), `GetCurrentUser` (query).
+| Method | Route                             | Spec                       |
+| ------ | --------------------------------- | -------------------------- |
+| POST   | `/v1/auth/register`               | 01-register                |
+| POST   | `/v1/auth/login`                  | 02-login                   |
+| POST   | `/v1/auth/reset-password`         | 03-reset-password          |
+| POST   | `/v1/auth/create-new-password`    | 04-create-new-password     |
+| POST   | `/v1/auth/refresh-token`          | 05-refresh-token           |
+| POST   | `/v1/auth/logout` (Bearer)        | 06-logout                  |
+| POST   | `/v1/user/profile/upsert` (Bearer)| 07-upsert-user-profile     |
+| GET    | `/v1/user/profile` (Bearer)       | 08-inquiry-user-profile    |
+| POST   | `/v1/user/address/upsert` (Bearer)| 09-upsert-user-address     |
+| GET    | `/v1/user/address` (Bearer)       | 10-inquiry-user-address    |
 
-| Method | Route                                | Use case                                   |
-| ------ | ------------------------------------ | ------------------------------------------ |
-| POST   | `/api/authen/register`               | `RegisterCommand`                          |
-| POST   | `/api/authen/login`                  | `LoginCommand`                             |
-| POST   | `/api/authen/password-reset/request` | `RequestPasswordResetCommand` (always 202) |
-| POST   | `/api/authen/password-reset/confirm` | `ResetPasswordCommand`                     |
-| GET    | `/api/authen/me` (Bearer)            | `GetCurrentUserQuery`                      |
-
-To add a feature: put its entities, value objects and repository interfaces in `Domain/<Feature>`, then create `Application/Features/<Feature>/<UseCase>/` with a command or query, an optional `IValidator<T>`, a handler and a response record. Implement the repositories in Infrastructure.
+To add a use case: put its rules, value objects and repository interface in `Domain/<Feature>`, then create `Application/Features/<Feature>/<UseCase>/` with a command or query, an `IValidator<T>`, a handler and a response record. Implement the repository in Infrastructure with EF Core LINQ.
 `AddCqrs` finds handlers and validators by scanning the Application assembly. Then add a controller action that calls `IDispatcher.SendAsync`.
 
 ## Running
@@ -76,5 +79,5 @@ dotnet test
 
 - `authen.m_user.username`, `email_address`, `first_name`, `last_name` are `bytea`. They are encrypted deterministically (AES-256-CBC with a synthetic IV) so `WHERE username = @x` still works.
 - Passwords: PBKDF2-HMAC-SHA256, 600k iterations, 16-byte salt. Access, refresh and reset tokens are stored as SHA-256 hashes.
-- A password reset revokes the user's rows in `t_user_access_token` and `t_user_refresh_token`, but access tokens are plain JWTs and the API does not look them up, so they stay valid until they expire (15 minutes by default).
-- There is no refresh-token endpoint yet. `IEmailSender` is a logging stub.
+- Protected APIs check the stored access token on every call, so logout and a password reset end a session at once.
+- `IEmailSender` is a logging stub.

@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ecommerce.Infrastructure.Persistence.Ef;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Ecommerce.Infrastructure;
 
@@ -47,9 +46,6 @@ public static class DependencyInjection
     private static void AddPersistence(IServiceCollection services, DatabaseOptions database)
     {
         // Every session runs in UTC (EcommerceDbContext.UtcSession): the schema stores UTC without a time zone.
-        services.AddSingleton(NpgsqlDataSource.Create(EcommerceDbContext.UtcSession(database.ConnectionString)));
-        services.AddScoped<DbSession>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddDbContext<EcommerceDbContext>(o =>
             EcommerceDbContext.Configure((DbContextOptionsBuilder<EcommerceDbContext>)o, database.ConnectionString, database.CommandTimeoutSeconds));
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
@@ -68,11 +64,6 @@ public static class DependencyInjection
         services.AddScoped<IUserProfileQueryRepository, UserProfileQueryRepository>();
         services.AddScoped<IUserAddressQueryRepository, UserAddressQueryRepository>();
         services.AddScoped<IUserAddressRepository, UserAddressRepository>();
-
-        // Legacy Dapper repositories, still used by GET api/authen/me until it is rebuilt.
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IPasswordRepository, PasswordRepository>();
-        services.AddScoped<ITokenRepository, TokenRepository>();
     }
 
     private static void AddAuthenSettings(IServiceCollection services, SecurityOptions security)
