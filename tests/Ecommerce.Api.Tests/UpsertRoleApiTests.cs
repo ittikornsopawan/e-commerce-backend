@@ -1,95 +1,21 @@
-using System.Globalization;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Ecommerce.Domain.Author.Repositories;
 using Ecommerce.Infrastructure.Persistence.Author;
-using Ecommerce.Infrastructure.Persistence.Authen;
-using Ecommerce.Infrastructure.Persistence.Ef;
-using Ecommerce.Infrastructure.Security;
 using Ecommerce.Infrastructure.Tests;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
 using static Ecommerce.Infrastructure.Tests.RegistrationFixtures;
 
 namespace Ecommerce.Api.Tests;
 
 // e-commerce/doc/api/author/01-upsert-role/test-cases.md, through the real HTTP pipeline and database.
 [Collection(PostgresCollection.Name)]
-public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class UpsertRoleApiTests(PostgresFixture postgres, WebApplicationFactory<Program> factory)
+    : AuthorApiTests(postgres, factory), IClassFixture<WebApplicationFactory<Program>>
 {
     private const string Path = "/v1/author/role/upsert";
-    private const string Invalid = "Invalid or expired access token.";
-    private const string Forbidden = "You do not have permission to manage roles.";
-    private static readonly string[] Admin = ["PLATFORM_ADMIN"];
-    private readonly PostgresFixture _postgres;
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly FieldProtector _protector = new(FieldKey);
-
-    public UpsertRoleApiTests(PostgresFixture postgres, WebApplicationFactory<Program> factory)
-    {
-        _postgres = postgres;
-        _factory = factory.WithWebHostBuilder(b => b
-            .UseSetting("Database:ConnectionString", postgres.ConnectionString)
-            .UseSetting("Jwt:SigningKey", "unit-test-signing-key-0123456789-abcdef")
-            .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey)));
-    }
-
-    /// <summary>A user with a stored ACTIVE access token whose JWT carries <paramref name="roles"/> (null omits the claim).</summary>
-    private async Task<(Guid UserId, string Jwt)> CallerAsync(object? roles)
-    {
-        await using var db = EcommerceDbContext.Create(_postgres.ConnectionString);
-        var userId = await new RegistrationRepository(db, _protector).AddAsync(Registration(), CancellationToken.None);
-        var jwt = UpsertUserProfileApiTests.Jwt(userId.ToString(), roles: roles);
-        await ExecuteAsync(_postgres.ConnectionString,
-            "INSERT INTO authen.t_user_access_token (created_by, user_id, session_id, token, expired_at) VALUES ('test', @u, @s, @t, @x)",
-            ("u", userId), ("s", Guid.NewGuid()), ("t", SHA256.HashData(Encoding.UTF8.GetBytes(jwt))), ("x", DateTime.UtcNow.AddMinutes(15)));
-        return (userId, jwt);
-    }
-
-    private Task<(Guid UserId, string Jwt)> AdminAsync() => CallerAsync(Admin);
-
-    /// <summary>A role name no other test uses: capital letters and hex digits.</summary>
-    private static string NewName() => "R_" + Guid.NewGuid().ToString("N").ToUpperInvariant();
-
-    private async Task<Guid> RoleAsync(string name, string rowStatus = "ACTIVE")
-    {
-        var id = Guid.NewGuid();
-        await ExecuteAsync(_postgres.ConnectionString,
-            "INSERT INTO author.m_role (id, created_by, row_status, name, description) VALUES (@id, 'seed', @r, @n, 'seeded')",
-            ("id", id), ("r", rowStatus), ("n", name));
-        return id;
-    }
-
-    /// <summary>The seeded system role, added once for the shared database.</summary>
-    private async Task<Guid> PlatformAdminRoleAsync()
-    {
-        await ExecuteAsync(_postgres.ConnectionString,
-            """
-            INSERT INTO author.m_role (created_by, name, description)
-            SELECT 'seed', 'PLATFORM_ADMIN', 'Platform administrator'
-            WHERE NOT EXISTS (SELECT 1 FROM author.m_role WHERE name = 'PLATFORM_ADMIN' AND row_status <> 'DELETED')
-            """);
-        await using var connection = new NpgsqlConnection(EcommerceDbContext.UtcSession(_postgres.ConnectionString));
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand("SELECT id FROM author.m_role WHERE name = 'PLATFORM_ADMIN' AND row_status <> 'DELETED'", connection);
-        return (Guid)(await command.ExecuteScalarAsync())!;
-    }
-
-    private async Task<(string Name, string Description, string RowStatus, string CreatedBy, string? UpdatedBy)> RowAsync(Guid id)
-    {
-        await using var connection = new NpgsqlConnection(EcommerceDbContext.UtcSession(_postgres.ConnectionString));
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand("SELECT name, description, row_status, created_by, updated_by FROM author.m_role WHERE id = @id", connection);
-        command.Parameters.AddWithValue("id", id);
-        await using var reader = await command.ExecuteReaderAsync();
-        Assert.True(await reader.ReadAsync());
-        return (reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4));
-    }
 
     private static JsonObject Body(string name, string description = "A role", Guid? id = null, string? rowStatus = null)
     {
@@ -99,35 +25,10 @@ public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Pro
         return body;
     }
 
-    private Task<HttpResponseMessage> Send(string? jwt, string body, string query = "", HttpClient? client = null)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, Path + query) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
-        if (jwt is not null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-        request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
-        return (client ?? _factory.CreateClient()).SendAsync(request);
-    }
+    private Task<HttpResponseMessage> Send(string? jwt, string body, string query = "", HttpClient? client = null) =>
+        Post(Path + query, jwt, body, client);
 
     private Task<HttpResponseMessage> Send(string? jwt, JsonNode body, HttpClient? client = null) => Send(jwt, body.ToJsonString(), client: client);
-
-    private static async Task<JsonElement> Status(HttpResponseMessage response, int code, string? bizCode, string? bizMessage)
-    {
-        var text = await response.Content.ReadAsStringAsync();
-        Assert.True(code == (int)response.StatusCode, $"{(int)response.StatusCode}: {text}");
-        if (code == 204)
-        {
-            Assert.Equal("", text);
-            return default;
-        }
-
-        using var json = JsonDocument.Parse(text);
-        var root = json.RootElement.Clone();
-        var status = root.GetProperty("status");
-        if (bizCode is null) Assert.False(status.TryGetProperty("bizCode", out _));
-        else Assert.Equal(bizCode, status.GetProperty("bizCode").GetString());
-        if (bizMessage is not null) Assert.Equal(bizMessage, status.GetProperty("bizMessage").GetString());
-        if (code >= 400) Assert.False(root.TryGetProperty("data", out _));
-        return root;
-    }
 
     private static Guid RoleId(JsonElement root)
     {
@@ -236,10 +137,10 @@ public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Pro
         }
 
         var (lockedId, lockedJwt) = await AdminAsync();
-        await ExecuteAsync(_postgres.ConnectionString, "UPDATE authen.m_user SET row_status = 'LOCKED' WHERE id = @id", ("id", lockedId));
+        await ExecuteAsync(Postgres.ConnectionString, "UPDATE authen.m_user SET row_status = 'LOCKED' WHERE id = @id", ("id", lockedId));
         await Status(await Send(lockedJwt, body), 401, "E10002", Invalid);
         var (revokedId, revokedJwt) = await AdminAsync();
-        await ExecuteAsync(_postgres.ConnectionString, "UPDATE authen.t_user_access_token SET row_status = 'INACTIVE' WHERE user_id = @u", ("u", revokedId));
+        await ExecuteAsync(Postgres.ConnectionString, "UPDATE authen.t_user_access_token SET row_status = 'INACTIVE' WHERE user_id = @u", ("u", revokedId));
         await Status(await Send(revokedJwt, body), 401, "E10002", Invalid);
     }
 
@@ -299,24 +200,16 @@ public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Pro
         await Status(await Send(jwt, Body(own, "Kept name", id)), 200, "S10000", "Update Role Success");
     }
 
-    private async Task<Guid> PermissionAsync()
-    {
-        var id = Guid.NewGuid();
-        await ExecuteAsync(_postgres.ConnectionString,
-            "INSERT INTO author.m_permission (id, created_by, name, description) VALUES (@id, 'seed', @n, 'seeded')",
-            ("id", id), ("n", "p" + Guid.NewGuid().ToString("N") + ".manage"));
-        return id;
-    }
 
     [Fact]
     public async Task TC_ROLE_011_in_use_blocks_archive_and_delete()
     {
         var (userId, jwt) = await AdminAsync();
         var withUser = await RoleAsync(NewName());
-        await ExecuteAsync(_postgres.ConnectionString,
+        await ExecuteAsync(Postgres.ConnectionString,
             "INSERT INTO author.t_user_role (created_by, row_status, user_id, role_id) VALUES ('seed', 'INACTIVE', @u, @r)", ("u", userId), ("r", withUser));
         var withPermission = await RoleAsync(NewName());
-        await ExecuteAsync(_postgres.ConnectionString,
+        await ExecuteAsync(Postgres.ConnectionString,
             "INSERT INTO author.t_role_permission (created_by, role_id, permission_id) VALUES ('seed', @r, @p)", ("r", withPermission), ("p", await PermissionAsync()));
 
         foreach (var role in new[] { withUser, withPermission })
@@ -328,7 +221,7 @@ public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Pro
             Assert.Equal("INACTIVE", (await RowAsync(role)).RowStatus);
         }
 
-        await ExecuteAsync(_postgres.ConnectionString, "UPDATE author.t_user_role SET row_status = 'DELETED' WHERE role_id = @r", ("r", withUser));
+        await ExecuteAsync(Postgres.ConnectionString, "UPDATE author.t_user_role SET row_status = 'DELETED' WHERE role_id = @r", ("r", withUser));
         await Status(await Send(jwt, Body((await RowAsync(withUser)).Name, id: withUser, rowStatus: "DELETED")), 204, null, null);
     }
 
@@ -346,32 +239,14 @@ public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Pro
         Assert.Equal(1L, await NameCountAsync(name));
     }
 
-    private async Task<long> NameCountAsync(string name)
-    {
-        await using var connection = new NpgsqlConnection(EcommerceDbContext.UtcSession(_postgres.ConnectionString));
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand("SELECT COUNT(*) FROM author.m_role WHERE name = @n", connection);
-        command.Parameters.AddWithValue("n", name);
-        return (long)(await command.ExecuteScalarAsync())!;
-    }
 
-    private async Task<(NpgsqlConnection Connection, NpgsqlTransaction Transaction)> HoldAsync(string sql, Guid id)
-    {
-        var connection = new NpgsqlConnection(_postgres.ConnectionString);
-        await connection.OpenAsync();
-        var transaction = await connection.BeginTransactionAsync();
-        await using var command = new NpgsqlCommand(sql, connection, transaction);
-        command.Parameters.AddWithValue("id", id);
-        await command.ExecuteNonQueryAsync();
-        return (connection, transaction);
-    }
 
     [Fact]
     public async Task TC_ROLE_013_the_caller_and_target_locks()
     {
         var (adminId, jwt) = await AdminAsync();
         var id = await RoleAsync(NewName());
-        var client = _factory.WithWebHostBuilder(b => b.UseSetting("Database:CommandTimeoutSeconds", "1")).CreateClient();
+        var client = Factory.WithWebHostBuilder(b => b.UseSetting("Database:CommandTimeoutSeconds", "1")).CreateClient();
 
         foreach (var sql in new[] { "SELECT 1 FROM author.m_role WHERE id = @id FOR UPDATE", "SELECT 1 FROM authen.m_user WHERE id = @id FOR UPDATE" })
         {
@@ -395,6 +270,7 @@ public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Pro
     private sealed class FailingWrite(IRoleRepository inner) : IRoleRepository
     {
         public Task<string?> LockNameAsync(Guid id, CancellationToken ct) => inner.LockNameAsync(id, ct);
+        public Task<IReadOnlyDictionary<Guid, string>> LockNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => inner.LockNamesAsync(ids, ct);
         public Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken ct) => inner.NameTakenAsync(name, excludeId, ct);
         public Task<bool> InUseAsync(Guid id, CancellationToken ct) => inner.InUseAsync(id, ct);
         public async Task<Guid> InsertAsync(RoleValues values, string by, DateTime now, CancellationToken ct)
@@ -411,7 +287,7 @@ public sealed class UpsertRoleApiTests : IClassFixture<WebApplicationFactory<Pro
     {
         var (_, jwt) = await AdminAsync();
         var name = NewName();
-        var client = _factory.WithWebHostBuilder(b => b.ConfigureTestServices(s =>
+        var client = Factory.WithWebHostBuilder(b => b.ConfigureTestServices(s =>
         {
             s.AddScoped<RoleRepository>();
             s.AddScoped<IRoleRepository>(p => new FailingWrite(p.GetRequiredService<RoleRepository>()));
