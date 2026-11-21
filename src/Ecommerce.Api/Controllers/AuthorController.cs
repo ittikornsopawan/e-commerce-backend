@@ -7,6 +7,7 @@ using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
 using Ecommerce.Application.Features.Author.InquiryScope;
 using Ecommerce.Application.Features.Author.InquiryUserRole;
+using Ecommerce.Application.Features.Author.Me;
 using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Application.Features.Author.UpsertPermission;
 using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
@@ -209,6 +210,19 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
 
         return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Role Success", result.Value) : result.ToFailure(this);
     }
+
+    /// <summary>Spec 12-me: the caller and the calling token's roles; no query parameter and no body.</summary>
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, NoKeys, out _) is { } shapeError)
+            return Result.Failure(Error.Validation("Me.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new MeQuery(VerifiedCaller.Of(this)), cancellationToken);
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Me Success", result.Value) : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> NoKeys = [];
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
     private string? NoQuery() =>
