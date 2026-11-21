@@ -4,6 +4,7 @@ using Ecommerce.Api.Contracts.Author;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryRole;
+using Ecommerce.Application.Features.Author.UpsertPermission;
 using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
 using Ecommerce.Shared.Cqrs;
@@ -50,6 +51,24 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
 
         var data = new { roles = result.Value.Roles.Select(r => new { index = r.Index, roleId = r.Written.RoleId, action = r.Written.Action.ToString().ToUpperInvariant() }) };
         return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Role Success", data);
+    }
+
+    /// <summary>Spec 04-upsert-permission: insert 201, update and archive 200 (data.permissionId), delete 204 with no body.</summary>
+    [HttpPost("permission/upsert")]
+    public async Task<IActionResult> UpsertPermission([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = PermissionBody.TryRead(body, out var b, out var scopes);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("Permission.Shape", message)).ToFailure(this);
+
+        var links = scopes.Select(s => new ScopeLinkInput(s.String("id"), s.String("scopeId").Value, s.String("rowStatus"))).ToList();
+        var result = await dispatcher.SendAsync(new UpsertPermissionCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("name").Value, b.String("description").Value, b.String("rowStatus"), links),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToUpsert(result.Value.Action, "Permission", new { permissionId = result.Value.PermissionId })
+            : result.ToFailure(this);
     }
 
     private static readonly HashSet<string> RoleQueryKeys = ["id", "pageIndex", "pageSize", "search", "rowStatus"];

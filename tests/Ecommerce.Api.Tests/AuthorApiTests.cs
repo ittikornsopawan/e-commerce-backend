@@ -91,6 +91,46 @@ public abstract class AuthorApiTests
         return id;
     }
 
+    /// <summary>A permission code no other test uses: lower-case, two parts.</summary>
+    protected static string NewPermissionName() => "p" + Guid.NewGuid().ToString("N") + ".manage";
+
+    protected async Task<Guid> PermissionAsync(string name, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.m_permission (id, created_by, row_status, name, description) VALUES (@id, 'seed', @r, @n, 'seeded')",
+            ("id", id), ("r", rowStatus), ("n", name));
+        return id;
+    }
+
+    protected async Task<Guid> ScopeAsync(string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        var code = "s_" + Guid.NewGuid().ToString("N");
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.m_scope (id, created_by, row_status, scope, name, description) VALUES (@id, 'seed', @r, @s, @s, 'seeded')",
+            ("id", id), ("r", rowStatus), ("s", code));
+        return id;
+    }
+
+    protected async Task<Guid> PermissionScopeAsync(Guid permissionId, Guid scopeId, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.t_permission_scope (id, created_by, row_status, permission_id, scope_id) VALUES (@id, 'seed', @r, @p, @s)",
+            ("id", id), ("r", rowStatus), ("p", permissionId), ("s", scopeId));
+        return id;
+    }
+
+    /// <summary>One value of <paramref name="sql"/> with <c>@id</c>, read on a UTC session.</summary>
+    protected async Task<T> ScalarAsync<T>(string sql, Guid id)
+    {
+        await using var connection = await OpenAsync();
+        await using var command = new NpgsqlCommand(sql, connection);
+        command.Parameters.AddWithValue("id", id);
+        return (T)(await command.ExecuteScalarAsync())!;
+    }
+
     protected async Task<long> NameCountAsync(string name)
     {
         await using var connection = await OpenAsync();

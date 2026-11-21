@@ -22,4 +22,38 @@ public static class AuthorErrors
 
     public static readonly Error SystemRoleLocked =
         Error.Of("Author.SystemRoleLocked", "System role cannot be changed.", ErrorType.Conflict, "E10006");
+
+    // Spec 04-upsert-permission.
+    public static readonly Error ManagePermissionsForbidden =
+        Error.Of("Author.ManagePermissionsForbidden", "You do not have permission to manage permissions.", ErrorType.Forbidden, "E10009");
+
+    public static readonly Error PermissionNotFound = Error.Of("Author.PermissionNotFound", "Permission not found.", ErrorType.NotFound, "E10004");
+
+    public static readonly Error PermissionScopeNotFound =
+        Error.Of("Author.PermissionScopeNotFound", "Permission scope not found.", ErrorType.NotFound, "E10004");
+
+    /// <summary>An ACTIVE link needs an ACTIVE scope master: a missing reference, so E10005.</summary>
+    public static readonly Error ScopeNotFound = Error.Of("Author.ScopeNotFound", "Scope not found.", ErrorType.NotFound, "E10005");
+
+    public static readonly Error ScopeIdChanged = Error.Validation("Author.ScopeIdChanged", "Scope Id cannot be changed.");
+
+    public static readonly Error PermissionNameTaken =
+        Error.Of("Author.PermissionNameTaken", "Permission name already exists.", ErrorType.Conflict, "E10003");
+
+    public static readonly Error PermissionScopeTaken =
+        Error.Of("Author.PermissionScopeTaken", "Scope already exists in the permission.", ErrorType.Conflict, "E10003");
+
+    public static readonly Error PermissionInUse =
+        Error.Of("Author.PermissionInUse", "Permission is used by roles or users.", ErrorType.Conflict, "E10006");
+
+    public static readonly Error PermissionScopeInUse =
+        Error.Of("Author.PermissionScopeInUse", "Scope is used by roles or users.", ErrorType.Conflict, "E10006");
+
+    /// <summary>Q24: delete the remaining scope definitions before the permission.</summary>
+    public static readonly Error PermissionScopesRemain =
+        Error.Of("Author.PermissionScopesRemain", "Permission cannot be deleted while scope definitions remain.", ErrorType.Conflict, "E10006");
+
+    /// <summary>Q22: a granted permission keeps at least one scope definition.</summary>
+    public static readonly Error PermissionWouldBeUnscoped =
+        Error.Of("Author.PermissionWouldBeUnscoped", "Permission cannot become unscoped while assigned to roles or users.", ErrorType.Conflict, "E10006");
 }

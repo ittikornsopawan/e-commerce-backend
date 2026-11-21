@@ -22,27 +22,6 @@ public static class RoleBatchBody
         if (envelope.Element("roles") is not { ValueKind: JsonValueKind.Array } array) return Required("roles");
         if (array.GetArrayLength() is < 1 or > 100) return ItemCount("roles");
 
-        return ReadItems(array, out roles);
-    }
-
-    private static string? ReadItems(JsonElement array, out IReadOnlyList<JsonBody> roles)
-    {
-        var read = new List<JsonBody>();
-        var messages = new List<string>();
-        foreach (var (role, index) in array.EnumerateArray().Select((role, index) => (role, index)))
-        {
-            if (role.ValueKind != JsonValueKind.Object)
-            {
-                messages.Add(At($"roles[{index}]", JsonType("role", "an object")));
-                continue;
-            }
-
-            var message = JsonBody.TryRead(role, RoleBody.Fields, out var item, uniqueKeys: true);
-            if (message is null) read.Add(item);
-            else messages.Add(At($"roles[{index}]", message));
-        }
-
-        roles = read;
-        return messages.Count switch { 0 => null, 1 => messages[0], _ => Combine(messages) };
+        return JsonBody.TryReadItems(array, "roles", "role", RoleBody.Fields, out roles);
     }
 }

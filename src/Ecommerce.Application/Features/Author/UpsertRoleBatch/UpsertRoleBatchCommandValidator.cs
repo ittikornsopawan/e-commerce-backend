@@ -35,11 +35,11 @@ public sealed class UpsertRoleBatchCommandValidator : IValidator<UpsertRoleBatch
         var messages = RoleRules.Messages(item.Id, item.Name, item.Description, item.RowStatus);
 
         if (item.Id.IsSet && Guid.TryParse(item.Id.Value, out var id) && !firstIds.TryAdd(id, index))
-            messages.Add($"Id is duplicated with {Position(firstIds[id])}.");
+            messages.Add(DuplicatedWith("id", Position(firstIds[id])));
 
         var deleted = item.RowStatus.IsSet && item.RowStatus.Value == MasterLifecycle.Deleted;
         if (!deleted && item.Name is { } name && RoleCode.IsValid(name) && !firstNames.TryAdd(name, index))
-            messages.Add($"Name is duplicated with {Position(firstNames[name])}.");
+            messages.Add(DuplicatedWith("name", Position(firstNames[name])));
 
         return messages;
     }

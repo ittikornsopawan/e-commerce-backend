@@ -29,3 +29,13 @@ public static partial class RoleCode
     [System.Text.RegularExpressions.GeneratedRegex("^[A-Z][A-Z0-9_]{0,63}$")]
     private static partial System.Text.RegularExpressions.Regex Pattern();
 }
+
+/// <summary>Permission rules of spec 04: the permission code, such as <c>catalog.manage</c>.</summary>
+public static partial class PermissionCode
+{
+    /// <summary>Lower-case letters, digits and _, at least two parts separated by a dot, at most 64 characters; never trimmed.</summary>
+    public static bool IsValid(string name) => name.Length <= 64 && Pattern().IsMatch(name);
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$")]
+    private static partial System.Text.RegularExpressions.Regex Pattern();
+}
