@@ -70,4 +70,8 @@ public static class AuthorErrors
     public static readonly Error ScopeCodeTaken = Error.Of("Author.ScopeCodeTaken", "Scope code already exists.", ErrorType.Conflict, "E10003");
 
     public static readonly Error ScopeInUse = Error.Of("Author.ScopeInUse", "Scope is used by permissions.", ErrorType.Conflict, "E10006");
+
+    // Spec 09-inquiry-scope.
+    public static readonly Error ReadScopesForbidden =
+        Error.Of("Author.ReadScopesForbidden", "You do not have permission to read scopes.", ErrorType.Forbidden, "E10009");
 }

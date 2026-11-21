@@ -5,6 +5,7 @@ using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
+using Ecommerce.Application.Features.Author.InquiryScope;
 using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Application.Features.Author.UpsertPermission;
 using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
@@ -161,6 +162,20 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
 
         var data = new { scopes = result.Value.Scopes.Select(s => new { index = s.Index, scopeId = s.Written.ScopeId, action = s.Written.Action.ToString().ToUpperInvariant() }) };
         return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Scope Success", data);
+    }
+
+    /// <summary>Spec 09-inquiry-scope: one page of non-DELETED scopes, sorted by code then id; platform administrators only.</summary>
+    [HttpGet("scope")]
+    public async Task<IActionResult> GetScopes(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, MasterQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("Scope.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryScopeQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"),
+            q.GetValueOrDefault("search"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Scope Success", result.Value) : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
