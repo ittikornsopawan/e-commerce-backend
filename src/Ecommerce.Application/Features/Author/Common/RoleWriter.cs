@@ -34,13 +34,6 @@ public sealed class RoleWriter(IRoleRepository roles)
             return Result.Failure<RoleWritten>(AuthorErrors.RoleInUse);
 
         if (!await roles.UpdateAsync(id, values, by, now, ct)) return Result.Failure<RoleWritten>(AuthorErrors.RoleNotFound);
-        return Result.Success(new RoleWritten(id, ActionOf(values.RowStatus)));
+        return Result.Success(new RoleWritten(id, MasterRules.UpdateAction(values.RowStatus)));
     }
-
-    private static UpsertAction ActionOf(string rowStatus) => rowStatus switch
-    {
-        MasterLifecycle.Deleted => UpsertAction.Delete,
-        MasterLifecycle.Archived => UpsertAction.Archive,
-        _ => UpsertAction.Update
-    };
 }
