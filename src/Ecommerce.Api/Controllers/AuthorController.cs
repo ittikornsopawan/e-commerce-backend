@@ -3,6 +3,7 @@ using Ecommerce.Api.Contracts;
 using Ecommerce.Api.Contracts.Author;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
+using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
 using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Application.Features.Author.UpsertPermission;
@@ -111,6 +112,22 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
 
         var data = new { permissions = result.Value.Permissions.Select(p => new { index = p.Index, permissionId = p.Written.PermissionId, action = p.Written.Action.ToString().ToUpperInvariant() }) };
         return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Permission Success", data);
+    }
+
+    /// <summary>Spec 06-inquiry-permission: one page of non-DELETED permissions with their scopes; platform administrators only.</summary>
+    [HttpGet("permission")]
+    public async Task<IActionResult> GetPermissions(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, MasterQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("Permission.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryPermissionQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"),
+            q.GetValueOrDefault("search"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Permission Success", result.Value)
+            : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>

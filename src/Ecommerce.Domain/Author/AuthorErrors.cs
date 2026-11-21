@@ -56,4 +56,8 @@ public static class AuthorErrors
     /// <summary>Q22: a granted permission keeps at least one scope definition.</summary>
     public static readonly Error PermissionWouldBeUnscoped =
         Error.Of("Author.PermissionWouldBeUnscoped", "Permission cannot become unscoped while assigned to roles or users.", ErrorType.Conflict, "E10006");
+
+    // Spec 06-inquiry-permission.
+    public static readonly Error ReadPermissionsForbidden =
+        Error.Of("Author.ReadPermissionsForbidden", "You do not have permission to read permissions.", ErrorType.Forbidden, "E10009");
 }

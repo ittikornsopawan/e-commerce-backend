@@ -162,6 +162,7 @@ public sealed class ScopeRecord
     public Guid Id { get; set; }
     public string RowStatus { get; set; } = "";
     public string Scope { get; set; } = "";
+    public string Name { get; set; } = "";
 }
 
 /// <summary>author.t_permission_scope</summary>
