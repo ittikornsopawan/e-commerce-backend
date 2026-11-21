@@ -60,4 +60,14 @@ public static class AuthorErrors
     // Spec 06-inquiry-permission.
     public static readonly Error ReadPermissionsForbidden =
         Error.Of("Author.ReadPermissionsForbidden", "You do not have permission to read permissions.", ErrorType.Forbidden, "E10009");
+
+    // Spec 07-upsert-scope. "Scope not found." of a missing master id is E10004 here (the target), E10005 in spec 04 (a reference).
+    public static readonly Error ManageScopesForbidden =
+        Error.Of("Author.ManageScopesForbidden", "You do not have permission to manage scopes.", ErrorType.Forbidden, "E10009");
+
+    public static readonly Error ScopeTargetNotFound = Error.Of("Author.ScopeTargetNotFound", "Scope not found.", ErrorType.NotFound, "E10004");
+
+    public static readonly Error ScopeCodeTaken = Error.Of("Author.ScopeCodeTaken", "Scope code already exists.", ErrorType.Conflict, "E10003");
+
+    public static readonly Error ScopeInUse = Error.Of("Author.ScopeInUse", "Scope is used by permissions.", ErrorType.Conflict, "E10006");
 }

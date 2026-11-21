@@ -10,6 +10,7 @@ using Ecommerce.Application.Features.Author.UpsertPermission;
 using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
 using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
+using Ecommerce.Application.Features.Author.UpsertScope;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 using Ecommerce.Shared.Validation;
@@ -128,6 +129,21 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Permission Success", result.Value)
             : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 07-upsert-scope: insert 201, update and archive 200 (data.scopeId), delete 204 with no body.</summary>
+    [HttpPost("scope/upsert")]
+    public async Task<IActionResult> UpsertScope([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = JsonBody.TryRead(body, ScopeBody.Fields, out var b, uniqueKeys: true);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("Scope.Shape", message)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new UpsertScopeCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("scope").Value, b.String("name").Value, b.String("description").Value, b.String("rowStatus")),
+            cancellationToken);
+
+        return result.IsSuccess ? this.ToUpsert(result.Value.Action, "Scope", new { scopeId = result.Value.ScopeId }) : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
