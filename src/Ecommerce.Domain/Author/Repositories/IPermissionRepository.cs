@@ -12,6 +12,9 @@ public interface IPermissionRepository
     /// <summary>QUERY - Check existing permission: the non-DELETED permission FOR UPDATE.</summary>
     Task<bool> LockAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>QUERY - Lock the permission (specs 13, 15): the permission FOR UPDATE in any status; its status, or null.</summary>
+    Task<string?> LockAnyAsync(Guid id, CancellationToken cancellationToken);
+
     /// <summary>QUERY - Lock existing permissions (spec 05): the non-DELETED permissions among the ids, FOR UPDATE in ascending id order.</summary>
     Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 

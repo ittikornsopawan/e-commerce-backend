@@ -19,13 +19,6 @@ internal sealed class UserRoleRepository(EcommerceDbContext db) : IUserRoleRepos
             .Select(u => new { u.Id, u.RowStatus })
             .ToListAsync(cancellationToken)).ToDictionary(u => u.Id, u => u.RowStatus);
 
-    public async Task<LockedRole?> LockRoleAsync(Guid roleId, CancellationToken cancellationToken) =>
-        (await db.Roles
-            .Where(r => r.Id == roleId)
-            .ForUpdate()
-            .Select(r => new LockedRole(r.Name, r.RowStatus))
-            .ToListAsync(cancellationToken)).SingleOrDefault();
-
     public async Task<UserRoleRow?> LockAssignmentAsync(Guid id, CancellationToken cancellationToken) =>
         (await db.UserRoles
             .Where(ur => ur.Id == id && ur.RowStatus != Deleted)

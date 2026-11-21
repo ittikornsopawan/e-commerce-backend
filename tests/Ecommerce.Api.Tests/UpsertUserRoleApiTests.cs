@@ -261,7 +261,6 @@ public sealed class UpsertUserRoleApiTests(PostgresFixture postgres, WebApplicat
     private sealed class FailingInsert(IUserRoleRepository inner) : IUserRoleRepository
     {
         public Task<IReadOnlyDictionary<Guid, string>> LockUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct) => inner.LockUsersAsync(userIds, ct);
-        public Task<LockedRole?> LockRoleAsync(Guid roleId, CancellationToken ct) => inner.LockRoleAsync(roleId, ct);
         public Task<UserRoleRow?> LockAssignmentAsync(Guid id, CancellationToken ct) => inner.LockAssignmentAsync(id, ct);
         public Task<bool> TakenAsync(Guid userId, Guid roleId, Guid? excludeId, CancellationToken ct) => inner.TakenAsync(userId, roleId, excludeId, ct);
         public Task<bool> UpdateAsync(Guid id, string rowStatus, string by, DateTime now, CancellationToken ct) => inner.UpdateAsync(id, rowStatus, by, now, ct);

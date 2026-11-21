@@ -22,6 +22,7 @@ namespace Ecommerce.Application.Features.Author.UpsertUserRole;
 public sealed class UpsertUserRoleCommandHandler(
     CallerCredential credential,
     IUserRoleRepository userRoles,
+    IRoleRepository roles,
     ITransactionRunner transactions) : ICommandHandler<UpsertUserRoleCommand, UpsertUserRoleResult>
 {
     /// <summary>The validated request: Id when it updates an existing assignment.</summary>
@@ -58,7 +59,7 @@ public sealed class UpsertUserRoleCommandHandler(
         if (verified.IsFailure) return Fail(verified.FirstError);
         if (!users.TryGetValue(q.UserId, out var userStatus)) return Fail(AuthorErrors.TargetUserNotFound);
 
-        var role = await userRoles.LockRoleAsync(q.RoleId, ct);
+        var role = await roles.LockAnyAsync(q.RoleId, ct);
         var row = q.Id is { } id ? await userRoles.LockAssignmentAsync(id, ct) : null;
         if (CheckRow(q, row) is { } rowError) return Fail(rowError);
         if (GivesRole(q, row) && (userStatus != MasterLifecycle.Active || role?.RowStatus != MasterLifecycle.Active))

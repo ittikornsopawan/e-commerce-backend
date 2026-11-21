@@ -12,9 +12,6 @@ public interface IUserRoleRepository
     /// <summary>QUERY - Lock the users: the caller and the target, FOR UPDATE in ascending id order; their status by id (any status).</summary>
     Task<IReadOnlyDictionary<Guid, string>> LockUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken);
 
-    /// <summary>QUERY - Lock the role: the role of the request FOR UPDATE (any status), or null.</summary>
-    Task<LockedRole?> LockRoleAsync(Guid roleId, CancellationToken cancellationToken);
-
     /// <summary>QUERY - Lock existing user role: the non-DELETED assignment FOR UPDATE, or null.</summary>
     Task<UserRoleRow?> LockAssignmentAsync(Guid id, CancellationToken cancellationToken);
 
