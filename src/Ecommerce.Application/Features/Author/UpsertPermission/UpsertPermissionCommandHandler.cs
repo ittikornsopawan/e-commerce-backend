@@ -32,6 +32,12 @@ public sealed class UpsertPermissionCommandHandler(
     /// <summary>The validated request: Id when it updates an existing permission.</summary>
     private sealed record Request(Guid? Id, PermissionValues Values, IReadOnlyList<Link> Links);
 
+    private static readonly Dictionary<string, Error> UniqueGuards = new()
+    {
+        ["uq_m_permission_name"] = AuthorErrors.PermissionNameTaken,
+        ["uq_t_permission_scope_permission_id_scope_id"] = AuthorErrors.PermissionScopeTaken
+    };
+
     public async Task<Result<UpsertPermissionResult>> HandleAsync(UpsertPermissionCommand r, CancellationToken cancellationToken)
     {
         // A missing or malformed roles claim is a bad token: 401 before any SQL.
@@ -42,13 +48,9 @@ public sealed class UpsertPermissionCommandHandler(
             return await transactions.RunAsync(IsolationLevel.ReadCommitted, ct => RunAsync(caller, Parse(r), ct), cancellationToken);
         }
         // The two unique indexes are the final guards against a concurrent writer with the same name or link.
-        catch (DuplicateKeyException duplicate) when (duplicate.ConstraintName == "uq_m_permission_name")
+        catch (DuplicateKeyException duplicate) when (UniqueGuards.TryGetValue(duplicate.ConstraintName, out var taken))
         {
-            return AuthorErrors.PermissionNameTaken;
-        }
-        catch (DuplicateKeyException duplicate) when (duplicate.ConstraintName == "uq_t_permission_scope_permission_id_scope_id")
-        {
-            return AuthorErrors.PermissionScopeTaken;
+            return taken;
         }
         catch (TimeoutException)
         {
