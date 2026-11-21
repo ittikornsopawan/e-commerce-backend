@@ -229,9 +229,11 @@ public sealed class UpsertPermissionBatchApiTests(PostgresFixture postgres, WebA
         foreach (var (item, code, bizCode, message) in cases)
             await Status(await Send(jwt, Batch(Body(first), item)), code, bizCode, message);
 
-        // A link of another permission of the same batch is locked too, but it is not this item's.
+        // A link of another permission of the same batch is locked too, but it is not this item's. The item also renames to a
+        // taken name: the ownership check answers 404 before the name check, which the guarded link UPDATE alone would not.
         var otherScope = await ScalarAsync<Guid>("SELECT scope_id FROM author.t_permission_scope WHERE id = @id", otherLink);
-        await Status(await Send(jwt, Batch(Body(first), Body(await NameOfAsync(other), id: other), Body(nameWith, id: withLink, scopes: [Scope(otherScope, otherLink)]))),
+        await Status(await Send(jwt, Batch(Body(first), Body(await NameOfAsync(other), id: other),
+                Body(await NameOfAsync(granted), id: withLink, scopes: [Scope(otherScope, otherLink)]))),
             404, "E10004", "permissions[2]: Permission scope not found.");
 
         Assert.Equal(0L, await PermissionNameCountAsync(first));

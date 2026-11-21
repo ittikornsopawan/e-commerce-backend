@@ -260,6 +260,12 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
         var own = await ScalarAsync<string>("SELECT name FROM author.m_permission WHERE id = @id", other);
         await Status(await Send(jwt, Body(own, "Own name", other)), 200, "S10000", "Update Permission Success");
 
+        // The name check comes before the grant check: a granted permission archived under a taken name answers the name 409
+        // (without the check, uq_m_permission_name would never be reached and the grant 409 would answer).
+        var granted = await PermissionAsync(NewPermissionName());
+        await RoleGrantAsync(granted);
+        await Status(await Send(jwt, Body(taken, id: granted, rowStatus: "ARCHIVED")), 409, "E10003", "Permission name already exists.");
+
         var deletedName = NewPermissionName();
         await PermissionAsync(deletedName, "DELETED");
         await Status(await Send(jwt, Body(deletedName)), 201, "S10000", "Insert Permission Success");
