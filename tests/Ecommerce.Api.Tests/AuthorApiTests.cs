@@ -103,12 +103,14 @@ public abstract class AuthorApiTests
         return id;
     }
 
-    protected async Task<Guid> ScopeAsync(string rowStatus = "ACTIVE")
+    protected Task<Guid> ScopeAsync(string rowStatus = "ACTIVE") => ScopeAsync("s_" + Guid.NewGuid().ToString("N"), rowStatus);
+
+    /// <summary>A scope master with the given code; its name is the code with "Name " in front.</summary>
+    protected async Task<Guid> ScopeAsync(string code, string rowStatus)
     {
         var id = Guid.NewGuid();
-        var code = "s_" + Guid.NewGuid().ToString("N");
         await ExecuteAsync(Postgres.ConnectionString,
-            "INSERT INTO author.m_scope (id, created_by, row_status, scope, name, description) VALUES (@id, 'seed', @r, @s, @s, 'seeded')",
+            "INSERT INTO author.m_scope (id, created_by, row_status, scope, name, description) VALUES (@id, 'seed', @r, @s, 'Name ' || @s, 'seeded')",
             ("id", id), ("r", rowStatus), ("s", code));
         return id;
     }
