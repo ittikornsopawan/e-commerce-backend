@@ -40,6 +40,13 @@ public sealed record PermissionWritten(Guid PermissionId, UpsertAction Action);
 /// </summary>
 public sealed class PermissionWriter(IPermissionRepository permissions)
 {
+    /// <summary>The unique indexes that are the final guards against a concurrent writer with the same name or link, and their 409.</summary>
+    public static readonly IReadOnlyDictionary<string, Error> UniqueGuards = new Dictionary<string, Error>
+    {
+        ["uq_m_permission_name"] = AuthorErrors.PermissionNameTaken,
+        ["uq_t_permission_scope_permission_id_scope_id"] = AuthorErrors.PermissionScopeTaken
+    };
+
     /// <summary>Locks the ACTIVE masters of every ACTIVE link, then the owned links of every target permission, both in id order.</summary>
     public async Task<LinkLocks> LockLinksAsync(IReadOnlyList<PermissionItem> items, CancellationToken ct)
     {
