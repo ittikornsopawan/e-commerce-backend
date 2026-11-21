@@ -20,14 +20,14 @@ public static class PermissionRules
     public const string NoDeletedInsert = "Row status must not be DELETED when inserting a permission.";
     public const string NoDeletedLinkInsert = "Row status must not be DELETED when inserting a scope.";
 
-    private static readonly MasterCode Code = new(PermissionCode.IsValid, NameFormat, NoDeletedInsert);
+    private static readonly MasterCode Code = new("name", PermissionCode.IsValid, NameFormat, NoDeletedInsert);
     private static readonly string[] LinkStatuses = [MasterLifecycle.Active, MasterLifecycle.Deleted];
 
     /// <summary>Every broken rule of one permission and its links, in request field order; empty when valid.</summary>
     public static List<string> Messages(
         Optional<string?> id, string? name, string? description, Optional<string?> rowStatus, IReadOnlyList<ScopeLinkInput> scopes)
     {
-        var messages = MasterRules.Messages(Code, id, name, description, rowStatus);
+        var messages = MasterRules.Messages(Code, id, name, [new MasterText("description", description, 256)], rowStatus);
         messages.AddRange(LinkMessages(scopes));
         return messages;
     }
