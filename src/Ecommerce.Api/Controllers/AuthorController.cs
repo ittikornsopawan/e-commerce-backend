@@ -6,6 +6,7 @@ using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryRole;
 using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Application.Features.Author.UpsertPermission;
+using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
 using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
 using Ecommerce.Shared.Cqrs;
@@ -88,6 +89,27 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Role Success", result.Value)
             : result.ToFailure(this);
+    }
+
+    /// <summary>
+    /// Spec 05-upsert-permission-batch: 200 "Batch Upsert Permission Success" for every committed batch, data.permissions
+    /// holding each item's index, permissionId and action (INSERT, UPDATE, DELETE, ARCHIVE) in request order.
+    /// </summary>
+    [HttpPost("permission/upsert/batch")]
+    public async Task<IActionResult> UpsertPermissionBatch([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = PermissionBatchBody.TryRead(body, out var items);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("PermissionBatch.Shape", message)).ToFailure(this);
+
+        var permissions = items.Select(p => new PermissionBatchItem(
+            p.Permission.String("id"), p.Permission.String("name").Value, p.Permission.String("description").Value, p.Permission.String("rowStatus"),
+            p.Scopes.Select(s => new ScopeLinkInput(s.String("id"), s.String("scopeId").Value, s.String("rowStatus"))).ToList())).ToList();
+        var result = await dispatcher.SendAsync(new UpsertPermissionBatchCommand(VerifiedCaller.Of(this), permissions), cancellationToken);
+        if (result.IsFailure) return result.ToFailure(this);
+
+        var data = new { permissions = result.Value.Permissions.Select(p => new { index = p.Index, permissionId = p.Written.PermissionId, action = p.Written.Action.ToString().ToUpperInvariant() }) };
+        return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Permission Success", data);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>

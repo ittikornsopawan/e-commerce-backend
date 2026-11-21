@@ -8,7 +8,8 @@ namespace Ecommerce.Api.Contracts.Author;
 /// </summary>
 public static class PermissionBody
 {
-    private static readonly IReadOnlyDictionary<string, JsonValueKind[]> Fields = new Dictionary<string, JsonValueKind[]>
+    /// <summary>The keys of one permission object (spec 04 body, spec 05 item).</summary>
+    public static readonly IReadOnlyDictionary<string, JsonValueKind[]> Fields = new Dictionary<string, JsonValueKind[]>
     {
         ["id"] = JsonBody.StringOrNull,
         ["name"] = JsonBody.StringOrNull,
@@ -29,8 +30,13 @@ public static class PermissionBody
     {
         scopes = [];
         var shape = JsonBody.TryRead(body, Fields, out permission, uniqueKeys: true);
-        if (shape is not null || permission.Element("scopes") is not { } array) return shape;
+        return shape ?? TryReadLinks(permission, out scopes);
+    }
 
-        return JsonBody.TryReadItems(array, "scopes", "scope", ScopeFields, out scopes);
+    /// <summary>The links of a permission object already read: none when <c>scopes</c> is omitted; errors start with <c>scopes[i]</c>.</summary>
+    public static string? TryReadLinks(JsonBody permission, out IReadOnlyList<JsonBody> scopes)
+    {
+        scopes = [];
+        return permission.Element("scopes") is { } array ? JsonBody.TryReadItems(array, "scopes", "scope", ScopeFields, out scopes) : null;
     }
 }

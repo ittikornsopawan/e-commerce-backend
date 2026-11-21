@@ -17,7 +17,7 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
 {
     private const string Path = "/v1/author/permission/upsert";
 
-    private static JsonObject Body(string name, string description = "A permission", Guid? id = null, string? rowStatus = null, params JsonNode[] scopes)
+    internal static JsonObject Body(string name, string description = "A permission", Guid? id = null, string? rowStatus = null, params JsonNode[] scopes)
     {
         var body = new JsonObject { ["name"] = name, ["description"] = description };
         if (id is not null) body["id"] = id.ToString();
@@ -26,7 +26,7 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
         return body;
     }
 
-    private static JsonObject Scope(Guid scopeId, Guid? id = null, string? rowStatus = null)
+    internal static JsonObject Scope(Guid scopeId, Guid? id = null, string? rowStatus = null)
     {
         var scope = new JsonObject { ["scopeId"] = scopeId.ToString() };
         if (id is not null) scope["id"] = id.ToString();
