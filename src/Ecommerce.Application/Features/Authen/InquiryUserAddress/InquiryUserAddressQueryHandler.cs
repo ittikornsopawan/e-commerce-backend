@@ -11,8 +11,8 @@ using Ecommerce.Shared.Results;
 namespace Ecommerce.Application.Features.Authen.InquiryUserAddress;
 
 /// <summary>
-/// Orchestrates spec 10 in one REPEATABLE READ READ ONLY snapshot with no lock and no write: the current credential, the count,
-/// the page only when the count is positive, a row-count check against the count, then the mapping.
+/// Orchestrates spec 10 in one REPEATABLE READ READ ONLY snapshot with no lock and no write: the current credential, then
+/// <see cref="PagedRead"/> (count, the page only when the count is positive, the row-count check, the mapping).
 /// </summary>
 public sealed class InquiryUserAddressQueryHandler(
     IUserAddressQueryRepository addresses,
@@ -39,18 +39,13 @@ public sealed class InquiryUserAddressQueryHandler(
         var checkedCredential = await credential.CheckAsync(caller, ct);
         if (checkedCredential.IsFailure) return Result.Failure<Page<UserAddressItem>>(checkedCredential.FirstError);
 
-        var total = await addresses.CountAsync(filter, ct);
-        var rows = total == 0 ? [] : await addresses.ListAsync(filter, page.Offset, page.PageSize, ct);
-        // Count and page come from one snapshot, so a mismatch is a defect: throwing rolls back and answers 500.
-        if (rows.Count != page.ExpectedRows(total))
-            throw new InvalidOperationException($"The page holds {rows.Count} rows; the count of the same snapshot expects {page.ExpectedRows(total)}.");
-
-        return new Page<UserAddressItem>(rows.Select(Map).ToList(), page.PageIndex, page.PageSize, total, page.TotalPages(total));
+        return await PagedRead.ReadAsync(
+            page, () => addresses.CountAsync(filter, ct), (offset, size) => addresses.ListAsync(filter, offset, size, ct), Map);
     }
 
     /// <summary>Omitted filters stay null; search becomes one bound ILIKE pattern that keeps the client's % and _.</summary>
     private static AddressFilter Filter(Caller caller, InquiryUserAddressQuery q) =>
-        new(caller.UserId, q.Id is null ? null : Guid.Parse(q.Id), q.Search is null ? null : $"%{q.Search}%", q.RowStatus);
+        new(caller.UserId, q.Id is null ? null : Guid.Parse(q.Id), PagedRead.SearchPattern(q.Search), q.RowStatus);
 
     private static UserAddressItem Map(AddressRow r) =>
         new(r.Id, r.Title, r.IsDefault, r.Address, r.City, r.State, r.PostalCode, r.Country, r.RowStatus);
