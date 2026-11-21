@@ -47,6 +47,9 @@ public static class ValidationMessages
     /// <summary>The batch size rule of api-conventions: <c>Roles must contain 1 to 100 items.</c></summary>
     public static string ItemCount(string requestField) => $"{Field(requestField)} must contain 1 to 100 items.";
 
+    /// <summary>A value repeated inside one request (batch items, child arrays): <c>Id is duplicated with roles[1].</c></summary>
+    public static string DuplicatedWith(string requestField, string firstPosition) => $"{Field(requestField)} is duplicated with {firstPosition}.";
+
     public static string Duplicated(string requestField) => $"{Field(requestField)} must not be duplicated.";
 
     /// <summary>Puts the position of an item or object first: <c>consents[1]: ...</c>, <c>addresses: ...</c>.</summary>

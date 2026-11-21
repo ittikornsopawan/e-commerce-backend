@@ -73,6 +73,7 @@ public sealed class JsonBody
     public static readonly JsonValueKind[] StringOrNull = [JsonValueKind.String, JsonValueKind.Null];
     public static readonly JsonValueKind[] BooleanOnly = [JsonValueKind.True, JsonValueKind.False];
     public static readonly JsonValueKind[] ArrayOrNull = [JsonValueKind.Array, JsonValueKind.Null];
+    public static readonly JsonValueKind[] ArrayOnly = [JsonValueKind.Array];
 
     private static string KindName(JsonValueKind[] kinds) =>
         kinds.Contains(JsonValueKind.True) ? "a boolean" : kinds.Contains(JsonValueKind.Array) ? "an array" : "a string";

@@ -147,8 +147,13 @@ public sealed class RoleRecord
 public sealed class PermissionRecord
 {
     public Guid Id { get; set; }
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public string RowStatus { get; set; } = "";
     public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
 }
 
 /// <summary>author.m_scope</summary>
@@ -163,6 +168,10 @@ public sealed class ScopeRecord
 public sealed class PermissionScopeRecord
 {
     public Guid Id { get; set; }
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public string RowStatus { get; set; } = "";
     public Guid PermissionId { get; set; }
     public Guid ScopeId { get; set; }
