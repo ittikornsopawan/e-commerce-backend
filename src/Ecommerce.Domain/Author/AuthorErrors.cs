@@ -16,6 +16,10 @@ public static class AuthorErrors
     public static readonly Error RoleInUse =
         Error.Of("Author.RoleInUse", "Role is assigned to users or has permissions.", ErrorType.Conflict, "E10006");
 
+    // Spec 03-inquiry-role.
+    public static readonly Error ReadRolesForbidden =
+        Error.Of("Author.ReadRolesForbidden", "You do not have permission to read roles.", ErrorType.Forbidden, "E10009");
+
     public static readonly Error SystemRoleLocked =
         Error.Of("Author.SystemRoleLocked", "System role cannot be changed.", ErrorType.Conflict, "E10006");
 }

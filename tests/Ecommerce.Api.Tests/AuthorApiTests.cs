@@ -119,6 +119,15 @@ public abstract class AuthorApiTests
         return (client ?? Factory.CreateClient()).SendAsync(request);
     }
 
+    protected Task<HttpResponseMessage> Get(string pathAndQuery, string? jwt, string? body = null, HttpClient? client = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, pathAndQuery);
+        if (body is not null) request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+        if (jwt is not null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
+        return (client ?? Factory.CreateClient()).SendAsync(request);
+    }
+
     /// <summary>Checks the HTTP code and the status envelope; a 4xx/5xx has no data and a 204 has no body.</summary>
     protected static async Task<JsonElement> Status(HttpResponseMessage response, int code, string? bizCode, string? bizMessage)
     {
