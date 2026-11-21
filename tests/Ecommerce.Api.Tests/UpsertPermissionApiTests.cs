@@ -434,7 +434,9 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
     {
         public Task<bool> LockAsync(Guid id, CancellationToken ct) => inner.LockAsync(id, ct);
         public Task<IReadOnlySet<Guid>> LockActiveScopesAsync(IReadOnlyCollection<Guid> scopeIds, CancellationToken ct) => inner.LockActiveScopesAsync(scopeIds, ct);
-        public Task<IReadOnlyDictionary<Guid, Guid>> LockLinksAsync(Guid permissionId, IReadOnlyCollection<Guid> linkIds, CancellationToken ct) => inner.LockLinksAsync(permissionId, linkIds, ct);
+        public Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => inner.LockManyAsync(ids, ct);
+        public Task<IReadOnlyDictionary<Guid, LinkRow>> LockLinksAsync(IReadOnlyCollection<Guid> permissionIds, IReadOnlyCollection<Guid> linkIds, CancellationToken ct) =>
+            inner.LockLinksAsync(permissionIds, linkIds, ct);
         public Task<long> CountLinksAsync(Guid permissionId, CancellationToken ct) => inner.CountLinksAsync(permissionId, ct);
         public Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken ct) => inner.NameTakenAsync(name, excludeId, ct);
         public Task<bool> GrantedAsync(Guid permissionId, CancellationToken ct) => inner.GrantedAsync(permissionId, ct);
