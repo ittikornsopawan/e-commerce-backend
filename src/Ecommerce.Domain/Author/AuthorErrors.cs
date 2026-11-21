@@ -93,4 +93,8 @@ public static class AuthorErrors
 
     public static readonly Error LastAdministrator =
         Error.Of("Author.LastAdministrator", "The platform must keep at least one administrator.", ErrorType.Conflict, "E10006");
+
+    // Spec 11-inquiry-user-role.
+    public static readonly Error ReadUserRolesForbidden =
+        Error.Of("Author.ReadUserRolesForbidden", "You do not have permission to read user roles.", ErrorType.Forbidden, "E10009");
 }

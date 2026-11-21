@@ -6,6 +6,7 @@ using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
 using Ecommerce.Application.Features.Author.InquiryScope;
+using Ecommerce.Application.Features.Author.InquiryUserRole;
 using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Application.Features.Author.UpsertPermission;
 using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
@@ -191,6 +192,22 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
             VerifiedCaller.Of(this), b.String("id"), b.String("userId").Value, b.String("roleId").Value, b.String("rowStatus")), cancellationToken);
 
         return result.IsSuccess ? this.ToUpsert(result.Value.Action, "User Role", new { userRoleId = result.Value.UserRoleId }) : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> UserRoleQueryKeys = ["id", "userId", "roleId", "pageIndex", "pageSize", "rowStatus"];
+
+    /// <summary>Spec 11-inquiry-user-role: one page of non-DELETED assignments; platform administrators only.</summary>
+    [HttpGet("user/role")]
+    public async Task<IActionResult> GetUserRoles(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, UserRoleQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("UserRole.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryUserRoleQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("userId"), q.GetValueOrDefault("roleId"),
+            q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Role Success", result.Value) : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
