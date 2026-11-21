@@ -411,6 +411,23 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
         }
 
         Assert.Equal(0L, await LinkCountAsync(id));
+
+        // FOR SHARE conflicts only with this API's FOR UPDATE, not with the later UPDATE or foreign-key checks, and each
+        // request stops before any write: without the lock it would answer at once (403, 409) instead of waiting.
+        var (_, customer) = await CallerAsync(new[] { "CUSTOMER" });
+        var (shared, sharedTransaction) = await HoldAsync("SELECT 1 FROM author.m_permission WHERE id = @id FOR SHARE", id);
+        await Status(await Send(customer, Body(name, id: id), client), 408, "E90001", null);
+        await sharedTransaction.RollbackAsync();
+        await shared.DisposeAsync();
+        await Status(await Send(customer, Body(name, id: id), client), 403, "E10009", ManageForbidden);
+
+        var taken = NewPermissionName();
+        await PermissionAsync(taken);
+        (shared, sharedTransaction) = await HoldAsync("SELECT 1 FROM author.m_scope WHERE id = @id FOR SHARE", scope);
+        await Status(await Send(jwt, Body(taken, scopes: [Scope(scope)]), client), 408, "E90001", null);
+        await sharedTransaction.RollbackAsync();
+        await shared.DisposeAsync();
+        await Status(await Send(jwt, Body(taken, scopes: [Scope(scope)]), client), 409, "E10003", "Permission name already exists.");
     }
 
     private sealed class FailingLinkInsert(IPermissionRepository inner) : IPermissionRepository
