@@ -97,4 +97,35 @@ public static class AuthorErrors
     // Spec 11-inquiry-user-role.
     public static readonly Error ReadUserRolesForbidden =
         Error.Of("Author.ReadUserRolesForbidden", "You do not have permission to read user roles.", ErrorType.Forbidden, "E10009");
+
+    // Spec 13-upsert-role-permission.
+    public static readonly Error AssignPermissionsForbidden =
+        Error.Of("Author.AssignPermissionsForbidden", "You do not have permission to assign permissions.", ErrorType.Forbidden, "E10009");
+
+    public static readonly Error RolePermissionNotFound = Error.Of("Author.RolePermissionNotFound", "Role permission not found.", ErrorType.NotFound, "E10004");
+
+    public static readonly Error RolePermissionScopeNotFound =
+        Error.Of("Author.RolePermissionScopeNotFound", "Role permission scope not found.", ErrorType.NotFound, "E10004");
+
+    public static readonly Error RoleOrPermissionNotActive =
+        Error.Of("Author.RoleOrPermissionNotActive", "Role or permission not found or not ACTIVE.", ErrorType.NotFound, "E10005");
+
+    /// <summary>A given scope needs an ACTIVE definition of the permission and an ACTIVE scope master (specs 13, 15).</summary>
+    public static readonly Error GrantScopeNotActive = Error.Of("Author.GrantScopeNotActive", "Scope not found or not ACTIVE.", ErrorType.NotFound, "E10005");
+
+    public static readonly Error RolePermissionChanged = Error.Validation("Author.RolePermissionChanged", "Role Id and Permission Id cannot be changed.");
+
+    public static readonly Error GrantScopeChanged = Error.Validation("Author.GrantScopeChanged", "Scope Id cannot be changed.");
+
+    public static readonly Error NotAScopeOfThePermission = Error.Validation("Author.NotAScopeOfThePermission", "Scope is not a scope of the permission.");
+
+    /// <summary>An ACTIVE grant of a permission that has scopes keeps at least one ACTIVE scope (specs 13, 15).</summary>
+    public static readonly Error ScopedGrantNeedsScope =
+        Error.Validation("Author.ScopedGrantNeedsScope", "An ACTIVE grant of a scoped permission needs at least one ACTIVE scope.");
+
+    public static readonly Error RolePermissionTaken =
+        Error.Of("Author.RolePermissionTaken", "The role already has this permission.", ErrorType.Conflict, "E10003");
+
+    public static readonly Error RolePermissionScopeTaken =
+        Error.Of("Author.RolePermissionScopeTaken", "The role already has this scope for the permission.", ErrorType.Conflict, "E10003");
 }

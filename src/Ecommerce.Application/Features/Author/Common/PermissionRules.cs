@@ -32,7 +32,8 @@ public static class PermissionRules
         return messages;
     }
 
-    private static IEnumerable<string> LinkMessages(IReadOnlyList<ScopeLinkInput> links)
+    /// <summary>The rules of a scope-link array (specs 04, 05, 13): each message starts with <c>scopes[i]</c>.</summary>
+    public static IEnumerable<string> LinkMessages(IReadOnlyList<ScopeLinkInput> links)
     {
         var firstIds = new Dictionary<Guid, int>();
         var firstScopes = new Dictionary<Guid, int>();

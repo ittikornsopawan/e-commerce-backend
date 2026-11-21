@@ -11,6 +11,12 @@ namespace Ecommerce.Application.Features.Author.Common;
 public sealed record PermissionLink(Guid? Id, Guid ScopeId, string RowStatus)
 {
     public bool Deleted => RowStatus == MasterLifecycle.Deleted;
+
+    /// <summary>The validated scope items (specs 04, 05, 13): ACTIVE when the status is omitted.</summary>
+    public static List<PermissionLink> ParseAll(IReadOnlyList<ScopeLinkInput> scopes) => scopes.Select(s => new PermissionLink(
+        s.Id.IsSet ? Guid.Parse(s.Id.Value!) : null,
+        Guid.Parse(s.ScopeId!),
+        s.RowStatus.IsSet ? s.RowStatus.Value! : MasterLifecycle.Active)).ToList();
 }
 
 /// <summary>One validated permission with its links: Id when it updates an existing one.</summary>
@@ -21,10 +27,7 @@ public sealed record PermissionItem(Guid? Id, PermissionValues Values, IReadOnly
         Optional<string?> id, string? name, string? description, Optional<string?> rowStatus, IReadOnlyList<ScopeLinkInput> scopes) => new(
         id.IsSet ? Guid.Parse(id.Value!) : null,
         new PermissionValues(name!, description!, rowStatus.IsSet ? rowStatus.Value! : MasterLifecycle.Active),
-        scopes.Select(s => new PermissionLink(
-            s.Id.IsSet ? Guid.Parse(s.Id.Value!) : null,
-            Guid.Parse(s.ScopeId!),
-            s.RowStatus.IsSet ? s.RowStatus.Value! : MasterLifecycle.Active)).ToList());
+        PermissionLink.ParseAll(scopes));
 }
 
 /// <summary>The ACTIVE scope masters and the owned links locked for a request.</summary>

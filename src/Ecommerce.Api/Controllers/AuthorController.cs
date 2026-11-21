@@ -13,6 +13,7 @@ using Ecommerce.Application.Features.Author.UpsertPermission;
 using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
 using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
+using Ecommerce.Application.Features.Author.UpsertRolePermission;
 using Ecommerce.Application.Features.Author.UpsertScope;
 using Ecommerce.Application.Features.Author.UpsertScopeBatch;
 using Ecommerce.Application.Features.Author.UpsertUserRole;
@@ -223,6 +224,23 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
     }
 
     private static readonly HashSet<string> NoKeys = [];
+
+    /// <summary>Spec 13-upsert-role-permission: insert 201, update and archive 200 (data.rolePermissionId), delete 204 with no body.</summary>
+    [HttpPost("role/permission/upsert")]
+    public async Task<IActionResult> UpsertRolePermission([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = RolePermissionBody.TryRead(body, out var b, out var scopes);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("RolePermission.Shape", message)).ToFailure(this);
+
+        var links = scopes.Select(s => new ScopeLinkInput(s.String("id"), s.String("scopeId").Value, s.String("rowStatus"))).ToList();
+        var result = await dispatcher.SendAsync(new UpsertRolePermissionCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("roleId").Value, b.String("permissionId").Value, b.String("rowStatus"), links), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToUpsert(result.Value.Action, "Role Permission", new { rolePermissionId = result.Value.RolePermissionId })
+            : result.ToFailure(this);
+    }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
     private string? NoQuery() =>
