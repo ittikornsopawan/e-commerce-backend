@@ -232,9 +232,9 @@ public sealed class InquiryRoleApiTests(PostgresFixture postgres, WebApplication
 
     private sealed class ShortPage(IRoleQueryRepository inner) : IRoleQueryRepository
     {
-        public Task<long> CountAsync(RoleFilter filter, CancellationToken ct) => inner.CountAsync(filter, ct);
+        public Task<long> CountAsync(MasterFilter filter, CancellationToken ct) => inner.CountAsync(filter, ct);
 
-        public async Task<IReadOnlyList<RoleRow>> ListAsync(RoleFilter filter, long offset, long limit, CancellationToken ct) =>
+        public async Task<IReadOnlyList<RoleRow>> ListAsync(MasterFilter filter, long offset, long limit, CancellationToken ct) =>
             (await inner.ListAsync(filter, offset, limit, ct)).Skip(1).ToList();
     }
 

@@ -1,8 +1,5 @@
 namespace Ecommerce.Domain.Author.Repositories;
 
-/// <summary>The identical predicates of the count and the page; a null filter is disabled (typed SQL NULL).</summary>
-public sealed record RoleFilter(Guid? Id, string? SearchPattern, string? RowStatus);
-
 /// <summary>One non-DELETED role as spec 03 returns it.</summary>
 public sealed record RoleRow(Guid Id, string Name, string Description, string RowStatus);
 
@@ -10,8 +7,8 @@ public sealed record RoleRow(Guid Id, string Name, string Description, string Ro
 public interface IRoleQueryRepository
 {
     /// <summary>QUERY - Get total items.</summary>
-    Task<long> CountAsync(RoleFilter filter, CancellationToken cancellationToken);
+    Task<long> CountAsync(MasterFilter filter, CancellationToken cancellationToken);
 
     /// <summary>QUERY - Get roles: name, then id.</summary>
-    Task<IReadOnlyList<RoleRow>> ListAsync(RoleFilter filter, long offset, long limit, CancellationToken cancellationToken);
+    Task<IReadOnlyList<RoleRow>> ListAsync(MasterFilter filter, long offset, long limit, CancellationToken cancellationToken);
 }

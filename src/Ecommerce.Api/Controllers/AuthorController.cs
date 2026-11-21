@@ -73,13 +73,14 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
             : result.ToFailure(this);
     }
 
-    private static readonly HashSet<string> RoleQueryKeys = ["id", "pageIndex", "pageSize", "search", "rowStatus"];
+    /// <summary>The query keys of the author master inquiries (03, 06, 09).</summary>
+    private static readonly HashSet<string> MasterQueryKeys = ["id", "pageIndex", "pageSize", "search", "rowStatus"];
 
     /// <summary>Spec 03-inquiry-role: one page of non-DELETED roles, sorted by name then id; platform administrators only.</summary>
     [HttpGet("role")]
     public async Task<IActionResult> GetRoles(CancellationToken cancellationToken)
     {
-        if (QueryParameters.TryRead(Request, RoleQueryKeys, out var q) is { } shapeError)
+        if (QueryParameters.TryRead(Request, MasterQueryKeys, out var q) is { } shapeError)
             return Result.Failure(Error.Validation("Role.Request", shapeError)).ToFailure(this);
 
         var result = await dispatcher.SendAsync(new InquiryRoleQuery(

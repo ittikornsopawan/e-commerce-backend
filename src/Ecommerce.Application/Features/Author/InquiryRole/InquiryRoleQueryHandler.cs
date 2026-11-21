@@ -2,6 +2,7 @@ using System.Data;
 using Ecommerce.Application.Abstractions;
 using Ecommerce.Application.Common;
 using Ecommerce.Application.Features.Authen.Common;
+using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Domain.Authen;
 using Ecommerce.Domain.Author;
 using Ecommerce.Domain.Author.Repositories;
@@ -24,11 +25,12 @@ public sealed class InquiryRoleQueryHandler(
     {
         // A missing or malformed roles claim is a bad token: 401 before any SQL.
         if (request.Caller is not { Roles: not null } caller) return AuthenErrors.AccessTokenInvalid;
-        PageRequest.TryParse(request.PageIndex, request.PageSize, InquiryRoleQueryValidator.MaxPageSize, out var page); // validated
+        var page = MasterInquiryRules.PageOf(request.PageIndex, request.PageSize);
+        var filter = MasterInquiryRules.Filter(request.Id, request.Search, request.RowStatus);
 
         try
         {
-            return await transactions.RunAsync(IsolationLevel.RepeatableRead, ct => ReadAsync(caller, Filter(request), page, ct), cancellationToken, readOnly: true);
+            return await transactions.RunAsync(IsolationLevel.RepeatableRead, ct => ReadAsync(caller, filter, page, ct), cancellationToken, readOnly: true);
         }
         catch (TimeoutException)
         {
@@ -36,7 +38,7 @@ public sealed class InquiryRoleQueryHandler(
         }
     }
 
-    private async Task<Result<Page<RoleItem>>> ReadAsync(Caller caller, RoleFilter filter, PageRequest page, CancellationToken ct)
+    private async Task<Result<Page<RoleItem>>> ReadAsync(Caller caller, MasterFilter filter, PageRequest page, CancellationToken ct)
     {
         var checkedCredential = await credential.CheckAsync(caller, ct);
         if (checkedCredential.IsFailure) return Result.Failure<Page<RoleItem>>(checkedCredential.FirstError);
@@ -47,9 +49,6 @@ public sealed class InquiryRoleQueryHandler(
         return await PagedRead.ReadAsync(
             page, () => roles.CountAsync(filter, ct), (offset, size) => roles.ListAsync(filter, offset, size, ct), Map);
     }
-
-    private static RoleFilter Filter(InquiryRoleQuery q) =>
-        new(q.Id is null ? null : Guid.Parse(q.Id), PagedRead.SearchPattern(q.Search), q.RowStatus);
 
     private static RoleItem Map(RoleRow r) => new(r.Id, r.Name, r.Description, r.RowStatus);
 }
