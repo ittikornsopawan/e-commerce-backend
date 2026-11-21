@@ -23,6 +23,7 @@ builder.Services.AddScoped<Ecommerce.Application.Features.Authen.Common.CallerCr
 builder.Services.AddScoped<Ecommerce.Application.Features.Author.Common.RoleWriter>();
 builder.Services.AddScoped<Ecommerce.Application.Features.Author.Common.PermissionWriter>();
 builder.Services.AddScoped<Ecommerce.Application.Features.Author.Common.ScopeWriter>();
+builder.Services.AddScoped<Ecommerce.Application.Features.Author.Common.AdminInquiry>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>() ?? new JwtOptions();
