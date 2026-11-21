@@ -198,6 +198,16 @@ public sealed class UpsertRoleApiTests(PostgresFixture postgres, WebApplicationF
         var own = NewName();
         var id = await RoleAsync(own);
         await Status(await Send(jwt, Body(own, "Kept name", id)), 200, "S10000", "Update Role Success");
+
+        // The name check comes before the in-use check: an in-use role archived under a taken name answers the name 409
+        // (without the check, uq_m_role_name would never be reached and the in-use 409 would answer).
+        var (userId, _) = await AdminAsync();
+        var inUse = await RoleAsync(NewName());
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.t_user_role (created_by, user_id, role_id) VALUES ('seed', @u, @r)", ("u", userId), ("r", inUse));
+        var takenName = NewName();
+        await RoleAsync(takenName);
+        await Status(await Send(jwt, Body(takenName, id: inUse, rowStatus: "ARCHIVED")), 409, "E10003", "Role name already exists.");
     }
 
 

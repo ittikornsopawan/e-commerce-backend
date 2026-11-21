@@ -1,12 +1,10 @@
 using Ecommerce.Application.Common;
 using Ecommerce.Application.Features.Authen.Common;
+using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Shared;
 using Ecommerce.Shared.Cqrs;
 
 namespace Ecommerce.Application.Features.Author.UpsertPermission;
-
-/// <summary>One item of <c>scopes</c>: a link of the permission to a scope; Id and RowStatus are unset when omitted.</summary>
-public sealed record ScopeLinkInput(Optional<string?> Id, string? ScopeId, Optional<string?> RowStatus);
 
 /// <summary>
 /// POST v1/author/permission/upsert (spec 04). Id and RowStatus are unset when omitted; Scopes is empty when omitted or [];

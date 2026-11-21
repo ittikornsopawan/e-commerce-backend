@@ -1,19 +1,25 @@
 namespace Ecommerce.Domain.Author.Repositories;
 
-/// <summary>A permission master row as spec 04 writes it.</summary>
+/// <summary>A permission master row as specs 04 and 05 write it.</summary>
 public sealed record PermissionValues(string Name, string Description, string RowStatus);
 
-/// <summary>The permission and scope-link SQL of spec 04-upsert-permission, inside the caller's transaction.</summary>
+/// <summary>A locked scope link: the permission it belongs to and its immutable scope.</summary>
+public sealed record LinkRow(Guid PermissionId, Guid ScopeId);
+
+/// <summary>The permission and scope-link SQL of specs 04-upsert-permission and 05-upsert-permission-batch, inside the caller's transaction.</summary>
 public interface IPermissionRepository
 {
     /// <summary>QUERY - Check existing permission: the non-DELETED permission FOR UPDATE.</summary>
     Task<bool> LockAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>QUERY - Lock existing permissions (spec 05): the non-DELETED permissions among the ids, FOR UPDATE in ascending id order.</summary>
+    Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     /// <summary>QUERY - Check scope: the ACTIVE scope masters among the ids, FOR UPDATE in ascending id order.</summary>
     Task<IReadOnlySet<Guid>> LockActiveScopesAsync(IReadOnlyCollection<Guid> scopeIds, CancellationToken cancellationToken);
 
-    /// <summary>QUERY - Check existing permission scope: this permission's non-DELETED links among the ids, FOR UPDATE in id order; their stored scope ids.</summary>
-    Task<IReadOnlyDictionary<Guid, Guid>> LockLinksAsync(Guid permissionId, IReadOnlyCollection<Guid> linkIds, CancellationToken cancellationToken);
+    /// <summary>QUERY - Check existing permission scope: the non-DELETED links among the ids that belong to one of the permissions, FOR UPDATE in id order; each link's owner and scope.</summary>
+    Task<IReadOnlyDictionary<Guid, LinkRow>> LockLinksAsync(IReadOnlyCollection<Guid> permissionIds, IReadOnlyCollection<Guid> linkIds, CancellationToken cancellationToken);
 
     /// <summary>QUERY - Count permission scope definitions: every non-DELETED link of the permission.</summary>
     Task<long> CountLinksAsync(Guid permissionId, CancellationToken cancellationToken);

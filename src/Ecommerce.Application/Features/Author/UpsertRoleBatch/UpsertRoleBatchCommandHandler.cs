@@ -97,10 +97,4 @@ public sealed class UpsertRoleBatchCommandHandler(
     }
 
     private static Guid IdOf(RoleBatchItem item) => Guid.Parse(item.Id.Value!);
-
-    /// <summary>The item being written, so a unique-index failure thrown out of the transaction names its position.</summary>
-    private sealed class CurrentItem
-    {
-        public int Index { get; set; }
-    }
 }

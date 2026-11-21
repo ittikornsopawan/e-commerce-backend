@@ -17,7 +17,7 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
 {
     private const string Path = "/v1/author/permission/upsert";
 
-    private static JsonObject Body(string name, string description = "A permission", Guid? id = null, string? rowStatus = null, params JsonNode[] scopes)
+    internal static JsonObject Body(string name, string description = "A permission", Guid? id = null, string? rowStatus = null, params JsonNode[] scopes)
     {
         var body = new JsonObject { ["name"] = name, ["description"] = description };
         if (id is not null) body["id"] = id.ToString();
@@ -26,7 +26,7 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
         return body;
     }
 
-    private static JsonObject Scope(Guid scopeId, Guid? id = null, string? rowStatus = null)
+    internal static JsonObject Scope(Guid scopeId, Guid? id = null, string? rowStatus = null)
     {
         var scope = new JsonObject { ["scopeId"] = scopeId.ToString() };
         if (id is not null) scope["id"] = id.ToString();
@@ -260,6 +260,12 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
         var own = await ScalarAsync<string>("SELECT name FROM author.m_permission WHERE id = @id", other);
         await Status(await Send(jwt, Body(own, "Own name", other)), 200, "S10000", "Update Permission Success");
 
+        // The name check comes before the grant check: a granted permission archived under a taken name answers the name 409
+        // (without the check, uq_m_permission_name would never be reached and the grant 409 would answer).
+        var granted = await PermissionAsync(NewPermissionName());
+        await RoleGrantAsync(granted);
+        await Status(await Send(jwt, Body(taken, id: granted, rowStatus: "ARCHIVED")), 409, "E10003", "Permission name already exists.");
+
         var deletedName = NewPermissionName();
         await PermissionAsync(deletedName, "DELETED");
         await Status(await Send(jwt, Body(deletedName)), 201, "S10000", "Insert Permission Success");
@@ -434,7 +440,9 @@ public sealed class UpsertPermissionApiTests(PostgresFixture postgres, WebApplic
     {
         public Task<bool> LockAsync(Guid id, CancellationToken ct) => inner.LockAsync(id, ct);
         public Task<IReadOnlySet<Guid>> LockActiveScopesAsync(IReadOnlyCollection<Guid> scopeIds, CancellationToken ct) => inner.LockActiveScopesAsync(scopeIds, ct);
-        public Task<IReadOnlyDictionary<Guid, Guid>> LockLinksAsync(Guid permissionId, IReadOnlyCollection<Guid> linkIds, CancellationToken ct) => inner.LockLinksAsync(permissionId, linkIds, ct);
+        public Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => inner.LockManyAsync(ids, ct);
+        public Task<IReadOnlyDictionary<Guid, LinkRow>> LockLinksAsync(IReadOnlyCollection<Guid> permissionIds, IReadOnlyCollection<Guid> linkIds, CancellationToken ct) =>
+            inner.LockLinksAsync(permissionIds, linkIds, ct);
         public Task<long> CountLinksAsync(Guid permissionId, CancellationToken ct) => inner.CountLinksAsync(permissionId, ct);
         public Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken ct) => inner.NameTakenAsync(name, excludeId, ct);
         public Task<bool> GrantedAsync(Guid permissionId, CancellationToken ct) => inner.GrantedAsync(permissionId, ct);

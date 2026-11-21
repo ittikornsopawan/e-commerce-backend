@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Infrastructure.Persistence.Author;
 
-/// <summary>EF Core LINQ for the permission and scope-link SQL of spec 04-upsert-permission (Database Relations).</summary>
+/// <summary>EF Core LINQ for the permission and scope-link SQL of specs 04-upsert-permission and 05-upsert-permission-batch (Database Relations).</summary>
 internal sealed class PermissionRepository(EcommerceDbContext db) : IPermissionRepository
 {
     private const string Deleted = MasterLifecycle.Deleted;
@@ -17,6 +17,14 @@ internal sealed class PermissionRepository(EcommerceDbContext db) : IPermissionR
             .Select(p => p.Id)
             .ToListAsync(cancellationToken)).Count == 1;
 
+    public async Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        (await db.Permissions
+            .Where(p => ids.Contains(p.Id) && p.RowStatus != Deleted)
+            .OrderBy(p => p.Id)
+            .ForUpdate()
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken)).ToHashSet();
+
     public async Task<IReadOnlySet<Guid>> LockActiveScopesAsync(IReadOnlyCollection<Guid> scopeIds, CancellationToken cancellationToken) =>
         (await db.Scopes
             .Where(s => scopeIds.Contains(s.Id) && s.RowStatus == MasterLifecycle.Active)
@@ -25,13 +33,14 @@ internal sealed class PermissionRepository(EcommerceDbContext db) : IPermissionR
             .Select(s => s.Id)
             .ToListAsync(cancellationToken)).ToHashSet();
 
-    public async Task<IReadOnlyDictionary<Guid, Guid>> LockLinksAsync(Guid permissionId, IReadOnlyCollection<Guid> linkIds, CancellationToken cancellationToken) =>
+    public async Task<IReadOnlyDictionary<Guid, LinkRow>> LockLinksAsync(
+        IReadOnlyCollection<Guid> permissionIds, IReadOnlyCollection<Guid> linkIds, CancellationToken cancellationToken) =>
         (await db.PermissionScopes
-            .Where(ps => linkIds.Contains(ps.Id) && ps.PermissionId == permissionId && ps.RowStatus != Deleted)
+            .Where(ps => linkIds.Contains(ps.Id) && permissionIds.Contains(ps.PermissionId) && ps.RowStatus != Deleted)
             .OrderBy(ps => ps.Id)
             .ForUpdate()
-            .Select(ps => new { ps.Id, ps.ScopeId })
-            .ToListAsync(cancellationToken)).ToDictionary(ps => ps.Id, ps => ps.ScopeId);
+            .Select(ps => new { ps.Id, ps.PermissionId, ps.ScopeId })
+            .ToListAsync(cancellationToken)).ToDictionary(ps => ps.Id, ps => new LinkRow(ps.PermissionId, ps.ScopeId));
 
     public Task<long> CountLinksAsync(Guid permissionId, CancellationToken cancellationToken) =>
         db.PermissionScopes.LongCountAsync(ps => ps.PermissionId == permissionId && ps.RowStatus != Deleted, cancellationToken);
