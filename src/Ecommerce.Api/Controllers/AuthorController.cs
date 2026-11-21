@@ -11,6 +11,7 @@ using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
 using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
 using Ecommerce.Application.Features.Author.UpsertScope;
+using Ecommerce.Application.Features.Author.UpsertScopeBatch;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 using Ecommerce.Shared.Validation;
@@ -144,6 +145,22 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
             cancellationToken);
 
         return result.IsSuccess ? this.ToUpsert(result.Value.Action, "Scope", new { scopeId = result.Value.ScopeId }) : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 08-upsert-scope-batch: 200 "Batch Upsert Scope Success", data.scopes holding each item's index, scopeId and action.</summary>
+    [HttpPost("scope/upsert/batch")]
+    public async Task<IActionResult> UpsertScopeBatch([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = ScopeBatchBody.TryRead(body, out var items);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("ScopeBatch.Shape", message)).ToFailure(this);
+
+        var scopes = items.Select(b => new ScopeBatchItem(b.String("id"), b.String("scope").Value, b.String("name").Value, b.String("description").Value, b.String("rowStatus"))).ToList();
+        var result = await dispatcher.SendAsync(new UpsertScopeBatchCommand(VerifiedCaller.Of(this), scopes), cancellationToken);
+        if (result.IsFailure) return result.ToFailure(this);
+
+        var data = new { scopes = result.Value.Scopes.Select(s => new { index = s.Index, scopeId = s.Written.ScopeId, action = s.Written.Action.ToString().ToUpperInvariant() }) };
+        return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Scope Success", data);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
