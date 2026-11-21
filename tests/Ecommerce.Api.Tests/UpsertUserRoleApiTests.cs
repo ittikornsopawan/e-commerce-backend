@@ -205,6 +205,8 @@ public sealed class UpsertUserRoleApiTests(PostgresFixture postgres, WebApplicat
 
         try
         {
+            // An ACTIVE assignment of a user who is not ACTIVE is not an administrator.
+            await UserRoleAsync(await UserAsync("LOCKED"), system);
             var anchorUser = await ScalarAsync<Guid>("SELECT user_id FROM author.t_user_role WHERE id = @id", anchor);
             foreach (var status in new[] { "INACTIVE", "LOCKED", "ARCHIVED", "DELETED" })
                 await Status(await Send(jwt, Body(anchorUser, system, anchor, status)), 409, "E10006", "The platform must keep at least one administrator.");
