@@ -160,9 +160,14 @@ public sealed class PermissionRecord
 public sealed class ScopeRecord
 {
     public Guid Id { get; set; }
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public string RowStatus { get; set; } = "";
     public string Scope { get; set; } = "";
     public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
 }
 
 /// <summary>author.t_permission_scope</summary>

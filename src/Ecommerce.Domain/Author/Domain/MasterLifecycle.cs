@@ -19,12 +19,18 @@ public static class MasterLifecycle
 }
 
 /// <summary>Role rules of spec 01: the role code and the seeded system role, which this API never changes.</summary>
-public static partial class RoleCode
+public static class RoleCode
 {
     public const string PlatformAdmin = "PLATFORM_ADMIN";
 
-    /// <summary>Capital letters, digits and _, starting with a letter, at most 64 characters; never trimmed.</summary>
-    public static bool IsValid(string name) => Pattern().IsMatch(name);
+    /// <summary>The role code is an <see cref="UpperCode"/>.</summary>
+    public static bool IsValid(string name) => UpperCode.IsValid(name);
+}
+
+/// <summary>The code form of roles (01) and scopes (07): capital letters, digits and _, starting with a letter, at most 64; never trimmed.</summary>
+public static partial class UpperCode
+{
+    public static bool IsValid(string code) => Pattern().IsMatch(code);
 
     [System.Text.RegularExpressions.GeneratedRegex("^[A-Z][A-Z0-9_]{0,63}$")]
     private static partial System.Text.RegularExpressions.Regex Pattern();
