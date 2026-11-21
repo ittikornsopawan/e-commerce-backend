@@ -44,6 +44,19 @@ public static class ValidationMessages
 
     public static string UnknownField(string requestField) => $"{Field(requestField)} is not a known field.";
 
+    public const string PageOverflow = "Page Index is too large for Page Size.";
+
+    /// <summary>The 400 message of a refused pageIndex/pageSize pair (the inquiry specs); null when the pair is valid.</summary>
+    public static string? Page(Paging.PageProblem problem, long maxPageSize) => problem switch
+    {
+        Paging.PageProblem.OutOfRange => $"Page Index and Page Size must be greater than 0, Page Size must not be greater than {maxPageSize}.",
+        Paging.PageProblem.OffsetOverflow => PageOverflow,
+        _ => null
+    };
+
+    /// <summary>The rowStatus filter message of the inquiry specs: <c>Row status must be one of ACTIVE, INACTIVE.</c></summary>
+    public static string RowStatusFilter(IEnumerable<string> statuses) => $"Row status must be one of {string.Join(", ", statuses)}.";
+
     /// <summary>The batch size rule of api-conventions: <c>Roles must contain 1 to 100 items.</c></summary>
     public static string ItemCount(string requestField) => $"{Field(requestField)} must contain 1 to 100 items.";
 

@@ -3,6 +3,7 @@ using Ecommerce.Api.Contracts;
 using Ecommerce.Api.Contracts.Author;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
+using Ecommerce.Application.Features.Author.InquiryRole;
 using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
 using Ecommerce.Shared.Cqrs;
@@ -49,6 +50,24 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
 
         var data = new { roles = result.Value.Roles.Select(r => new { index = r.Index, roleId = r.Written.RoleId, action = r.Written.Action.ToString().ToUpperInvariant() }) };
         return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Role Success", data);
+    }
+
+    private static readonly HashSet<string> RoleQueryKeys = ["id", "pageIndex", "pageSize", "search", "rowStatus"];
+
+    /// <summary>Spec 03-inquiry-role: one page of non-DELETED roles, sorted by name then id; platform administrators only.</summary>
+    [HttpGet("role")]
+    public async Task<IActionResult> GetRoles(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, RoleQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("Role.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryRoleQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"),
+            q.GetValueOrDefault("search"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Role Success", result.Value)
+            : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>

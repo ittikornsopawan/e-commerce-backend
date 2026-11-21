@@ -11,6 +11,9 @@ public static class MasterLifecycle
     public const string Archived = "ARCHIVED";
     public static readonly string[] Statuses = [Active, "INACTIVE", Deleted, "LOCKED", Archived];
 
+    /// <summary>The rowStatus filter of the author inquiries (03, 06, 09): every status but DELETED, which is never returned.</summary>
+    public static readonly string[] Visible = [Active, "INACTIVE", "LOCKED", Archived];
+
     /// <summary>True when the target status needs the "not in use" check before the write.</summary>
     public static bool TakesOutOfUse(string rowStatus) => rowStatus is Deleted or Archived;
 }

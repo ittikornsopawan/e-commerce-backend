@@ -13,13 +13,11 @@ internal sealed class UserAddressQueryRepository(EcommerceDbContext db, FieldPro
 
     public async Task<IReadOnlyList<AddressRow>> ListAsync(AddressFilter filter, long offset, long limit, CancellationToken cancellationToken)
     {
-        // shortcut: EF Skip/Take take int; an offset past int.MaxValue is past every row (at most 10 addresses per user).
         var rows = await Matching(filter)
             .OrderByDescending(a => a.IsDefault)
             .ThenByDescending(a => a.CreatedAt)
             .ThenBy(a => a.Id)
-            .Skip((int)Math.Min(offset, int.MaxValue))
-            .Take((int)limit)
+            .PageOf(offset, limit)
             .Select(a => new { a.Id, a.Title, a.IsDefault, a.Address, a.City, a.State, a.PostalCode, a.Country, a.RowStatus })
             .ToListAsync(cancellationToken);
 

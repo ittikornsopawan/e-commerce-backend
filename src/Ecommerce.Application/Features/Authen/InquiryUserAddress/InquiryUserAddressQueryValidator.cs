@@ -9,20 +9,15 @@ namespace Ecommerce.Application.Features.Authen.InquiryUserAddress;
 public sealed class InquiryUserAddressQueryValidator : IValidator<InquiryUserAddressQuery>
 {
     public const long MaxPageSize = 100;
-    public const string PageRange = "Page Index and Page Size must be greater than 0, Page Size must not be greater than 100.";
-    public const string PageOverflow = "Page Index is too large for Page Size.";
-    public const string RowStatusFilter = "Row status must be one of ACTIVE, INACTIVE.";
+    private static readonly string[] RowStatuses = ["ACTIVE", "INACTIVE"];
 
     public IReadOnlyList<Error> Validate(InquiryUserAddressQuery q)
     {
         var messages = new List<string>();
         if (q.Id is not null && !Guid.TryParse(q.Id, out _)) messages.Add(Uuid("id"));
 
-        var problem = PageRequest.TryParse(q.PageIndex, q.PageSize, MaxPageSize, out _);
-        if (problem == PageProblem.OutOfRange) messages.Add(PageRange);
-        if (problem == PageProblem.OffsetOverflow) messages.Add(PageOverflow);
-
-        if (q.RowStatus is not null and not ("ACTIVE" or "INACTIVE")) messages.Add(RowStatusFilter);
+        if (Page(PageRequest.TryParse(q.PageIndex, q.PageSize, MaxPageSize, out _), MaxPageSize) is { } page) messages.Add(page);
+        if (q.RowStatus is not null && !RowStatuses.Contains(q.RowStatus)) messages.Add(RowStatusFilter(RowStatuses));
         return messages.Count == 0 ? [] : [Error.Validation("Address.Query", messages.Count == 1 ? messages[0] : Combine(messages))];
     }
 }
