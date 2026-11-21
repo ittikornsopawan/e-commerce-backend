@@ -19,28 +19,13 @@ internal sealed class RegistrationRepository(EcommerceDbContext db, FieldProtect
         return db.Users.AnyAsync(u => u.Username == usernameBytes || u.EmailAddress == emailBytes, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ApplicableConsent>> GetApplicableConsentsAsync(DateTime nowUtc, CancellationToken cancellationToken)
-    {
-        // QUERY - Get effective consents
-        var effective = await db.Consents
-            .Where(c => c.RowStatus == "ACTIVE" && c.EffectiveAt <= nowUtc && (c.ExpiredAt == null || c.ExpiredAt > nowUtc))
+    public async Task<IReadOnlyList<ApplicableConsent>> GetApplicableConsentsAsync(DateTime nowUtc, CancellationToken cancellationToken) =>
+        // QUERY - Get applicable consents (the view keeps only ACTIVE consents of ACTIVE types)
+        await db.ApplicableConsents
+            .Where(c => c.EffectiveAt <= nowUtc && (c.ExpiredAt == null || c.ExpiredAt > nowUtc))
             .OrderBy(c => c.Id)
-            .Select(c => new { c.Id, c.ConsentTypeId, c.ConsentVersion, c.IsRequired })
-            .ToListAsync(cancellationToken);
-
-        // QUERY - Get active consent types
-        var typeIds = effective.Select(c => c.ConsentTypeId).Distinct().ToList();
-        var activeTypeIds = await db.ConsentTypes
-            .Where(t => typeIds.Contains(t.Id) && t.RowStatus == "ACTIVE")
-            .OrderBy(t => t.Id)
-            .Select(t => t.Id)
-            .ToListAsync(cancellationToken);
-
-        return effective
-            .Where(c => activeTypeIds.Contains(c.ConsentTypeId))
             .Select(c => new ApplicableConsent(c.Id, c.ConsentVersion, c.IsRequired))
-            .ToList();
-    }
+            .ToListAsync(cancellationToken);
 
     public Task<bool> UserExistsAsync(Guid userId, CancellationToken cancellationToken) =>
         db.Users.AnyAsync(u => u.Id == userId, cancellationToken);
