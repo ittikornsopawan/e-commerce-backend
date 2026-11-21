@@ -4,6 +4,7 @@ using Ecommerce.Api.Contracts.Author;
 using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.UpsertRole;
+using Ecommerce.Application.Features.Author.UpsertRoleBatch;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 using Ecommerce.Shared.Validation;
@@ -29,6 +30,25 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
             cancellationToken);
 
         return result.IsSuccess ? this.ToUpsert(result.Value.Action, "Role", new { roleId = result.Value.RoleId }) : result.ToFailure(this);
+    }
+
+    /// <summary>
+    /// Spec 02-upsert-role-batch: 200 "Batch Upsert Role Success" for every committed batch, data.roles holding each
+    /// item's index, roleId and action (INSERT, UPDATE, DELETE, ARCHIVE) in request order.
+    /// </summary>
+    [HttpPost("role/upsert/batch")]
+    public async Task<IActionResult> UpsertRoleBatch([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = RoleBatchBody.TryRead(body, out var items);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("RoleBatch.Shape", message)).ToFailure(this);
+
+        var roles = items.Select(b => new RoleBatchItem(b.String("id"), b.String("name").Value, b.String("description").Value, b.String("rowStatus"))).ToList();
+        var result = await dispatcher.SendAsync(new UpsertRoleBatchCommand(VerifiedCaller.Of(this), roles), cancellationToken);
+        if (result.IsFailure) return result.ToFailure(this);
+
+        var data = new { roles = result.Value.Roles.Select(r => new { index = r.Index, roleId = r.Written.RoleId, action = r.Written.Action.ToString().ToUpperInvariant() }) };
+        return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Role Success", data);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>

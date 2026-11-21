@@ -20,6 +20,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddCqrs(AssemblyReference.Assembly);
 builder.Services.AddScoped<Ecommerce.Application.Features.Authen.Common.CallerCredential>();
+builder.Services.AddScoped<Ecommerce.Application.Features.Author.Common.RoleWriter>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>() ?? new JwtOptions();

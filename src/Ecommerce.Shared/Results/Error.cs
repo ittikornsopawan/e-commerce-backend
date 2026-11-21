@@ -43,4 +43,7 @@ public sealed record Error(string Code, string Description, ErrorType Type = Err
     public static Error Unauthorized(string code, string description) => new(code, description, ErrorType.Unauthorized);
 
     public static Error Forbidden(string code, string description) => new(code, description, ErrorType.Forbidden);
+
+    /// <summary>The same error for one batch item: its message starts with the position, <c>roles[2]: Role not found.</c> (api-conventions Batch).</summary>
+    public Error At(string position) => this with { Description = Ecommerce.Shared.Validation.ValidationMessages.At(position, Description) };
 }

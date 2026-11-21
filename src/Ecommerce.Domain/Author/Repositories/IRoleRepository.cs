@@ -3,11 +3,14 @@ namespace Ecommerce.Domain.Author.Repositories;
 /// <summary>A role master row: what the upsert needs to decide on it.</summary>
 public sealed record RoleValues(string Name, string Description, string RowStatus);
 
-/// <summary>The role SQL of spec 01-upsert-role, inside the caller's transaction.</summary>
+/// <summary>The role SQL of specs 01-upsert-role and 02-upsert-role-batch, inside the caller's transaction.</summary>
 public interface IRoleRepository
 {
     /// <summary>QUERY - Check existing role: the non-DELETED role FOR UPDATE; its stored name, or null.</summary>
     Task<string?> LockNameAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>QUERY - Lock existing roles (spec 02): the non-DELETED roles among the ids, locked FOR UPDATE in ascending id order; their stored names by id.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> LockNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 
     /// <summary>QUERY - Check duplicate name: another non-DELETED role with the exact name.</summary>
     Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken cancellationToken);
