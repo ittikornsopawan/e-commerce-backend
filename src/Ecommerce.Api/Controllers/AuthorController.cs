@@ -13,6 +13,7 @@ using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
 using Ecommerce.Application.Features.Author.UpsertScope;
 using Ecommerce.Application.Features.Author.UpsertScopeBatch;
+using Ecommerce.Application.Features.Author.UpsertUserRole;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 using Ecommerce.Shared.Validation;
@@ -176,6 +177,20 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
             q.GetValueOrDefault("search"), q.GetValueOrDefault("rowStatus")), cancellationToken);
 
         return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Scope Success", result.Value) : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 10-upsert-user-role: insert 201, update and archive 200 (data.userRoleId), delete 204 with no body.</summary>
+    [HttpPost("user/role/upsert")]
+    public async Task<IActionResult> UpsertUserRole([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = JsonBody.TryRead(body, UserRoleBody.Fields, out var b, uniqueKeys: true);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("UserRole.Shape", message)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new UpsertUserRoleCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("userId").Value, b.String("roleId").Value, b.String("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToUpsert(result.Value.Action, "User Role", new { userRoleId = result.Value.UserRoleId }) : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>

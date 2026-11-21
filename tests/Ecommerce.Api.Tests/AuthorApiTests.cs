@@ -124,6 +124,40 @@ public abstract class AuthorApiTests
         return id;
     }
 
+    /// <summary>A user (ACTIVE unless <paramref name="rowStatus"/> says otherwise) with no token; returns its id.</summary>
+    protected async Task<Guid> UserAsync(string rowStatus = "ACTIVE")
+    {
+        await using var db = EcommerceDbContext.Create(Postgres.ConnectionString);
+        var userId = await new RegistrationRepository(db, _protector).AddAsync(Registration(), CancellationToken.None);
+        if (rowStatus != "ACTIVE")
+            await ExecuteAsync(Postgres.ConnectionString, "UPDATE authen.m_user SET row_status = @r WHERE id = @u", ("r", rowStatus), ("u", userId));
+        return userId;
+    }
+
+    protected async Task<Guid> UserRoleAsync(Guid userId, Guid roleId, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.t_user_role (id, created_by, row_status, user_id, role_id) VALUES (@id, 'seed', @r, @u, @role)",
+            ("id", id), ("r", rowStatus), ("u", userId), ("role", roleId));
+        return id;
+    }
+
+    /// <summary>
+    /// The platform keeps at least one administrator (spec 10), and every user-role write checks it: this ACTIVE user with
+    /// an ACTIVE PLATFORM_ADMIN assignment is added once for the shared database and left in place.
+    /// </summary>
+    protected async Task<Guid> AnchorAdministratorAsync()
+    {
+        var role = await PlatformAdminRoleAsync();
+        await using var connection = await OpenAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT ur.id FROM author.t_user_role ur JOIN authen.m_user u ON u.id = ur.user_id WHERE ur.role_id = @r AND ur.row_status = 'ACTIVE' AND u.row_status = 'ACTIVE' ORDER BY ur.id LIMIT 1", connection);
+        command.Parameters.AddWithValue("r", role);
+        if (await command.ExecuteScalarAsync() is Guid existing) return existing;
+        return await UserRoleAsync(await UserAsync(), role);
+    }
+
     /// <summary>One value of <paramref name="sql"/> with <c>@id</c>, read on a UTC session.</summary>
     protected async Task<T> ScalarAsync<T>(string sql, Guid id)
     {

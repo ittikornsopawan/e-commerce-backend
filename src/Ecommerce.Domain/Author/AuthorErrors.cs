@@ -74,4 +74,23 @@ public static class AuthorErrors
     // Spec 09-inquiry-scope.
     public static readonly Error ReadScopesForbidden =
         Error.Of("Author.ReadScopesForbidden", "You do not have permission to read scopes.", ErrorType.Forbidden, "E10009");
+
+    // Spec 10-upsert-user-role.
+    public static readonly Error AssignRolesForbidden =
+        Error.Of("Author.AssignRolesForbidden", "You do not have permission to assign roles.", ErrorType.Forbidden, "E10009");
+
+    public static readonly Error UserRoleNotFound = Error.Of("Author.UserRoleNotFound", "User role not found.", ErrorType.NotFound, "E10004");
+
+    /// <summary>The target user of an assignment does not exist (any status): a missing reference, so E10005.</summary>
+    public static readonly Error TargetUserNotFound = Error.Of("Author.TargetUserNotFound", "User not found.", ErrorType.NotFound, "E10005");
+
+    public static readonly Error UserOrRoleNotActive =
+        Error.Of("Author.UserOrRoleNotActive", "User or role not found or not ACTIVE.", ErrorType.NotFound, "E10005");
+
+    public static readonly Error UserRoleChanged = Error.Validation("Author.UserRoleChanged", "User Id and Role Id cannot be changed.");
+
+    public static readonly Error UserRoleTaken = Error.Of("Author.UserRoleTaken", "The user already has this role.", ErrorType.Conflict, "E10003");
+
+    public static readonly Error LastAdministrator =
+        Error.Of("Author.LastAdministrator", "The platform must keep at least one administrator.", ErrorType.Conflict, "E10006");
 }
