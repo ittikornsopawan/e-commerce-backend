@@ -12,8 +12,7 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
     public DbSet<UserAddressRecord> UserAddresses => Set<UserAddressRecord>();
     public DbSet<UserConsentRecord> UserConsents => Set<UserConsentRecord>();
     public DbSet<UserReferralRecord> UserReferrals => Set<UserReferralRecord>();
-    public DbSet<ConsentRecord> Consents => Set<ConsentRecord>();
-    public DbSet<ConsentTypeRecord> ConsentTypes => Set<ConsentTypeRecord>();
+    public DbSet<ApplicableConsentRecord> ApplicableConsents => Set<ApplicableConsentRecord>();
     public DbSet<LoginAttemptRecord> LoginAttempts => Set<LoginAttemptRecord>();
     public DbSet<AccessTokenRecord> AccessTokens => Set<AccessTokenRecord>();
     public DbSet<RefreshTokenRecord> RefreshTokens => Set<RefreshTokenRecord>();
@@ -56,8 +55,7 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
         modelBuilder.Entity<UserAddressRecord>().ToTable("t_user_address", "authen");
         modelBuilder.Entity<UserConsentRecord>().ToTable("t_user_consent", "authen");
         modelBuilder.Entity<UserReferralRecord>().ToTable("l_user_referral", "authen");
-        modelBuilder.Entity<ConsentRecord>().ToTable("t_consent", "consent");
-        modelBuilder.Entity<ConsentTypeRecord>().ToTable("m_consent_type", "consent");
+        modelBuilder.Entity<ApplicableConsentRecord>().HasNoKey().ToView("v_applicable_consent", "consent");
         modelBuilder.Entity<LoginAttemptRecord>().ToTable("l_user_login_attempt", "authen");
         modelBuilder.Entity<AccessTokenRecord>().ToTable("t_user_access_token", "authen");
         modelBuilder.Entity<RefreshTokenRecord>().ToTable("t_user_refresh_token", "authen");
@@ -79,15 +77,15 @@ public sealed partial class EcommerceDbContext(DbContextOptions<EcommerceDbConte
         modelBuilder.Entity<UserAddressRecord>().Property(a => a.CreatedAt).HasDefaultValueSql("NOW()").ValueGeneratedOnAdd();
     }
 
-    /// <summary>snake_case columns, UTC times and database-generated ids for every mapped table.</summary>
+    /// <summary>snake_case columns, UTC times and database-generated ids for every mapped table or view.</summary>
     private static void ApplyConventions(ModelBuilder modelBuilder)
     {
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
         {
             foreach (var property in entity.GetProperties()) ApplyColumnConventions(property);
 
-            // Ids come from the database default (INSERT ... RETURNING id), as in the spec SQL.
-            entity.FindPrimaryKey()!.Properties[0].SetDefaultValueSql("GEN_RANDOM_UUID()");
+            // Ids come from the database default (INSERT ... RETURNING id), as in the spec SQL; a keyless view has none.
+            entity.FindPrimaryKey()?.Properties[0].SetDefaultValueSql("GEN_RANDOM_UUID()");
         }
     }
 

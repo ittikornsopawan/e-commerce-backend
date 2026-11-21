@@ -90,23 +90,15 @@ public sealed class UserReferralRecord
     public Guid? ReferrerId { get; set; }
 }
 
-/// <summary>consent.t_consent</summary>
-public sealed class ConsentRecord
+/// <summary>consent.v_applicable_consent (read only: ACTIVE consents of ACTIVE consent types)</summary>
+public sealed class ApplicableConsentRecord
 {
     public Guid Id { get; set; }
-    public string RowStatus { get; set; } = "";
     public Guid ConsentTypeId { get; set; }
     public string ConsentVersion { get; set; } = "";
+    public bool IsRequired { get; set; }
     public DateTime EffectiveAt { get; set; }
     public DateTime? ExpiredAt { get; set; }
-    public bool IsRequired { get; set; }
-}
-
-/// <summary>consent.m_consent_type</summary>
-public sealed class ConsentTypeRecord
-{
-    public Guid Id { get; set; }
-    public string RowStatus { get; set; } = "";
 }
 
 /// <summary>authen.l_user_login_attempt</summary>
