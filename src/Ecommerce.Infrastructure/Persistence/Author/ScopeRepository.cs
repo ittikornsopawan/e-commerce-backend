@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Infrastructure.Persistence.Author;
 
-/// <summary>EF Core LINQ for the scope SQL of spec 07-upsert-scope (Database Relations).</summary>
+/// <summary>EF Core LINQ for the scope SQL of specs 07-upsert-scope and 08-upsert-scope-batch (Database Relations).</summary>
 internal sealed class ScopeRepository(EcommerceDbContext db) : IScopeRepository
 {
     private const string Deleted = MasterLifecycle.Deleted;
@@ -16,6 +16,14 @@ internal sealed class ScopeRepository(EcommerceDbContext db) : IScopeRepository
             .ForUpdate()
             .Select(s => s.Id)
             .ToListAsync(cancellationToken)).Count == 1;
+
+    public async Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        (await db.Scopes
+            .Where(s => ids.Contains(s.Id) && s.RowStatus != Deleted)
+            .OrderBy(s => s.Id)
+            .ForUpdate()
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken)).ToHashSet();
 
     public Task<bool> CodeTakenAsync(string scope, Guid? excludeId, CancellationToken cancellationToken) =>
         db.Scopes.AnyAsync(s => s.Scope == scope && s.RowStatus != Deleted && (excludeId == null || s.Id != excludeId), cancellationToken);

@@ -6,7 +6,6 @@ using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Domain;
 using Ecommerce.Domain.Authen;
 using Ecommerce.Domain.Author;
-using Ecommerce.Domain.Author.Domain;
 using Ecommerce.Domain.Author.Repositories;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
@@ -15,12 +14,13 @@ namespace Ecommerce.Application.Features.Author.UpsertScope;
 
 /// <summary>
 /// Orchestrates spec 07 in one READ COMMITTED transaction: caller lock and credential (401) → for an id, the locked scope
-/// (404) → PLATFORM_ADMIN from the token (403) → duplicate code (409) → in use before DELETED/ARCHIVED (409) → guarded
-/// write. Every rejection after BEGIN rolls back.
+/// (404) → PLATFORM_ADMIN from the token (403) → <see cref="ScopeWriter"/> (duplicate code, in use, guarded write).
+/// Every rejection after BEGIN rolls back.
 /// </summary>
 public sealed class UpsertScopeCommandHandler(
     CallerCredential credential,
     IScopeRepository scopes,
+    ScopeWriter writer,
     ITransactionRunner transactions) : ICommandHandler<UpsertScopeCommand, UpsertScopeResult>
 {
     public async Task<Result<UpsertScopeResult>> HandleAsync(UpsertScopeCommand r, CancellationToken cancellationToken)
@@ -33,7 +33,7 @@ public sealed class UpsertScopeCommandHandler(
             return await transactions.RunAsync(IsolationLevel.ReadCommitted, ct => RunAsync(caller, r, ct), cancellationToken);
         }
         // uq_m_scope_scope is the final guard against a concurrent insert or rename with the same code.
-        catch (DuplicateKeyException duplicate) when (duplicate.ConstraintName == "uq_m_scope_scope")
+        catch (DuplicateKeyException duplicate) when (duplicate.ConstraintName == ScopeWriter.UniqueGuard)
         {
             return AuthorErrors.ScopeCodeTaken;
         }
@@ -48,23 +48,12 @@ public sealed class UpsertScopeCommandHandler(
         var verified = await credential.VerifyAsync(caller, ct);
         if (verified.IsFailure) return Fail(verified.FirstError);
 
-        // The validator has checked every value.
-        Guid? id = r.Id.IsSet ? Guid.Parse(r.Id.Value!) : null;
-        var values = new ScopeValues(r.Scope!, r.Name!, r.Description!, r.RowStatus.IsSet ? r.RowStatus.Value! : MasterLifecycle.Active);
+        Guid? id = r.Id.IsSet ? Guid.Parse(r.Id.Value!) : null; // validated
         if (id is { } existing && !await scopes.LockAsync(existing, ct)) return Fail(AuthorErrors.ScopeTargetNotFound);
         if (!caller.IsPlatformAdmin) return Fail(AuthorErrors.ManageScopesForbidden);
 
-        if (await scopes.CodeTakenAsync(values.Scope, id, ct)) return Fail(AuthorErrors.ScopeCodeTaken);
-        if (id is { } target && MasterLifecycle.TakesOutOfUse(values.RowStatus) && await scopes.InUseAsync(target, ct)) return Fail(AuthorErrors.ScopeInUse);
-
-        return await WriteAsync(id, values, caller.UserId.ToString(), verified.Value, ct);
-    }
-
-    private async Task<Result<UpsertScopeResult>> WriteAsync(Guid? id, ScopeValues values, string by, DateTime now, CancellationToken ct)
-    {
-        if (id is not { } existing) return Result.Success(new UpsertScopeResult(await scopes.InsertAsync(values, by, now, ct), UpsertAction.Insert));
-        if (!await scopes.UpdateAsync(existing, values, by, now, ct)) return Fail(AuthorErrors.ScopeTargetNotFound);
-        return Result.Success(new UpsertScopeResult(existing, MasterRules.UpdateAction(values.RowStatus)));
+        var written = await writer.WriteAsync(id, ScopeWriter.Values(r.Scope, r.Name, r.Description, r.RowStatus), caller.UserId.ToString(), verified.Value, ct);
+        return written.IsSuccess ? Result.Success(new UpsertScopeResult(written.Value.ScopeId, written.Value.Action)) : Fail(written.FirstError);
     }
 
     private static Result<UpsertScopeResult> Fail(Error error) => Result.Failure<UpsertScopeResult>(error);

@@ -241,6 +241,7 @@ public sealed class UpsertScopeApiTests(PostgresFixture postgres, WebApplication
     private sealed class FailingInsert(IScopeRepository inner) : IScopeRepository
     {
         public Task<bool> LockAsync(Guid id, CancellationToken ct) => inner.LockAsync(id, ct);
+        public Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => inner.LockManyAsync(ids, ct);
         public Task<bool> CodeTakenAsync(string scope, Guid? excludeId, CancellationToken ct) => inner.CodeTakenAsync(scope, excludeId, ct);
         public Task<bool> InUseAsync(Guid id, CancellationToken ct) => inner.InUseAsync(id, ct);
         public Task<bool> UpdateAsync(Guid id, ScopeValues values, string by, DateTime now, CancellationToken ct) => inner.UpdateAsync(id, values, by, now, ct);
