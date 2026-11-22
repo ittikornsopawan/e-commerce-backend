@@ -22,6 +22,7 @@ namespace Ecommerce.Application.Features.Author.UpsertUserRole;
 public sealed class UpsertUserRoleCommandHandler(
     CallerCredential credential,
     IUserRoleRepository userRoles,
+    IUserLockRepository users,
     IRoleRepository roles,
     ITransactionRunner transactions) : ICommandHandler<UpsertUserRoleCommand, UpsertUserRoleResult>
 {
@@ -54,10 +55,10 @@ public sealed class UpsertUserRoleCommandHandler(
     private async Task<Result<UpsertUserRoleResult>> RunAsync(Caller caller, Request q, CancellationToken ct)
     {
         // Users first, in id order, as every assignment writer does; the caller's credential is then read under that lock.
-        var users = await userRoles.LockUsersAsync(new[] { caller.UserId, q.UserId }.Distinct().ToList(), ct);
+        var locked = await users.LockUsersAsync(new[] { caller.UserId, q.UserId }.Distinct().ToList(), ct);
         var verified = await credential.VerifyAsync(caller, ct);
         if (verified.IsFailure) return Fail(verified.FirstError);
-        if (!users.TryGetValue(q.UserId, out var userStatus)) return Fail(AuthorErrors.TargetUserNotFound);
+        if (!locked.TryGetValue(q.UserId, out var userStatus)) return Fail(AuthorErrors.TargetUserNotFound);
 
         var role = await roles.LockAnyAsync(q.RoleId, ct);
         var row = q.Id is { } id ? await userRoles.LockAssignmentAsync(id, ct) : null;

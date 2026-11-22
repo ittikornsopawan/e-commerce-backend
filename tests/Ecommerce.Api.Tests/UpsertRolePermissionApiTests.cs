@@ -257,7 +257,6 @@ public sealed class UpsertRolePermissionApiTests(PostgresFixture postgres, WebAp
     private sealed class FailingScopeInsert(IRolePermissionRepository inner) : IRolePermissionRepository
     {
         public Task<RolePermissionRow?> LockGrantAsync(Guid id, CancellationToken ct) => inner.LockGrantAsync(id, ct);
-        public Task<IReadOnlyList<PermissionScopeDefinition>> DefinitionsAsync(Guid permissionId, CancellationToken ct) => inner.DefinitionsAsync(permissionId, ct);
         public Task<IReadOnlyList<GrantScopeRow>> LockScopesAsync(Guid grantId, CancellationToken ct) => inner.LockScopesAsync(grantId, ct);
         public Task<bool> TakenAsync(Guid roleId, Guid permissionId, Guid? excludeId, CancellationToken ct) => inner.TakenAsync(roleId, permissionId, excludeId, ct);
         public Task<Guid> InsertAsync(Guid roleId, Guid permissionId, string rowStatus, string by, DateTime now, CancellationToken ct) => inner.InsertAsync(roleId, permissionId, rowStatus, by, now, ct);

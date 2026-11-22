@@ -11,14 +11,6 @@ internal sealed class UserRoleRepository(EcommerceDbContext db) : IUserRoleRepos
     private const string Active = MasterLifecycle.Active;
     private const string Deleted = MasterLifecycle.Deleted;
 
-    public async Task<IReadOnlyDictionary<Guid, string>> LockUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
-        (await db.Users
-            .Where(u => userIds.Contains(u.Id))
-            .OrderBy(u => u.Id)
-            .ForUpdate()
-            .Select(u => new { u.Id, u.RowStatus })
-            .ToListAsync(cancellationToken)).ToDictionary(u => u.Id, u => u.RowStatus);
-
     public async Task<UserRoleRow?> LockAssignmentAsync(Guid id, CancellationToken cancellationToken) =>
         (await db.UserRoles
             .Where(ur => ur.Id == id && ur.RowStatus != Deleted)

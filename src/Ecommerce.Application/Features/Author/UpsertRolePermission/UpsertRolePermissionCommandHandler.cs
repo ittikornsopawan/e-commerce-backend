@@ -71,7 +71,7 @@ public sealed class UpsertRolePermissionCommandHandler(
         if (CheckGrant(q, grant) is { } grantError) return Fail(grantError);
         if (GivesPermission(q, grant) && (role?.RowStatus != Active || permission != Active)) return Fail(AuthorErrors.RoleOrPermissionNotActive);
 
-        var definitions = await grants.DefinitionsAsync(q.PermissionId, ct);
+        var definitions = await permissions.DefinitionsAsync(q.PermissionId, ct);
         var links = q.Id is { } grantId ? await grants.LockScopesAsync(grantId, ct) : [];
         if ((CheckLinks(q, definitions, links) ?? CheckScopes(q, definitions)) is { } scopeError) return Fail(scopeError);
 

@@ -17,12 +17,6 @@ internal sealed class RolePermissionRepository(EcommerceDbContext db) : IRolePer
             .Select(rp => new RolePermissionRow(rp.Id, rp.RoleId, rp.PermissionId, rp.RowStatus))
             .ToListAsync(cancellationToken)).SingleOrDefault();
 
-    public async Task<IReadOnlyList<PermissionScopeDefinition>> DefinitionsAsync(Guid permissionId, CancellationToken cancellationToken) =>
-        await (from ps in db.PermissionScopes
-               join s in db.Scopes on ps.ScopeId equals s.Id
-               where ps.PermissionId == permissionId && ps.RowStatus != Deleted
-               select new PermissionScopeDefinition(ps.Id, ps.ScopeId, ps.RowStatus, s.RowStatus)).ToListAsync(cancellationToken);
-
     public async Task<IReadOnlyList<GrantScopeRow>> LockScopesAsync(Guid grantId, CancellationToken cancellationToken) =>
         await db.RolePermissionScopes
             .Where(rps => rps.RolePermissionId == grantId && rps.RowStatus != Deleted)

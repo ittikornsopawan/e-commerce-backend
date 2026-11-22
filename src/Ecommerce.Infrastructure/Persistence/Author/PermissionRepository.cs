@@ -24,6 +24,12 @@ internal sealed class PermissionRepository(EcommerceDbContext db) : IPermissionR
             .Select(p => p.RowStatus)
             .ToListAsync(cancellationToken)).SingleOrDefault();
 
+    public async Task<IReadOnlyList<PermissionScopeDefinition>> DefinitionsAsync(Guid permissionId, CancellationToken cancellationToken) =>
+        await (from ps in db.PermissionScopes
+               join s in db.Scopes on ps.ScopeId equals s.Id
+               where ps.PermissionId == permissionId && ps.RowStatus != Deleted
+               select new PermissionScopeDefinition(ps.Id, ps.ScopeId, ps.RowStatus, s.RowStatus)).ToListAsync(cancellationToken);
+
     public async Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
         (await db.Permissions
             .Where(p => ids.Contains(p.Id) && p.RowStatus != Deleted)

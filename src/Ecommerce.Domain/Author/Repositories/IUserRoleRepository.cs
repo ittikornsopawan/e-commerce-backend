@@ -9,9 +9,6 @@ public sealed record UserRoleRow(Guid Id, Guid UserId, Guid RoleId, string RowSt
 /// <summary>The user-role SQL of spec 10-upsert-user-role, inside the caller's transaction.</summary>
 public interface IUserRoleRepository
 {
-    /// <summary>QUERY - Lock the users: the caller and the target, FOR UPDATE in ascending id order; their status by id (any status).</summary>
-    Task<IReadOnlyDictionary<Guid, string>> LockUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken);
-
     /// <summary>QUERY - Lock existing user role: the non-DELETED assignment FOR UPDATE, or null.</summary>
     Task<UserRoleRow?> LockAssignmentAsync(Guid id, CancellationToken cancellationToken);
 
