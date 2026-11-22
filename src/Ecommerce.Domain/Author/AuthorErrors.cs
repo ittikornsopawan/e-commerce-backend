@@ -128,4 +128,8 @@ public static class AuthorErrors
 
     public static readonly Error RolePermissionScopeTaken =
         Error.Of("Author.RolePermissionScopeTaken", "The role already has this scope for the permission.", ErrorType.Conflict, "E10003");
+
+    // Spec 14-inquiry-role-permission.
+    public static readonly Error ReadRolePermissionsForbidden =
+        Error.Of("Author.ReadRolePermissionsForbidden", "You do not have permission to read role permissions.", ErrorType.Forbidden, "E10009");
 }

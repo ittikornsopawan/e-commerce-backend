@@ -5,6 +5,7 @@ using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
+using Ecommerce.Application.Features.Author.InquiryRolePermission;
 using Ecommerce.Application.Features.Author.InquiryScope;
 using Ecommerce.Application.Features.Author.InquiryUserRole;
 using Ecommerce.Application.Features.Author.Me;
@@ -240,6 +241,22 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? this.ToUpsert(result.Value.Action, "Role Permission", new { rolePermissionId = result.Value.RolePermissionId })
             : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> RolePermissionQueryKeys = ["id", "roleId", "permissionId", "pageIndex", "pageSize", "rowStatus"];
+
+    /// <summary>Spec 14-inquiry-role-permission: one page of non-DELETED grants with their scopes; platform administrators only.</summary>
+    [HttpGet("role/permission")]
+    public async Task<IActionResult> GetRolePermissions(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, RolePermissionQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("RolePermission.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryRolePermissionQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("roleId"), q.GetValueOrDefault("permissionId"),
+            q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Role Permission Success", result.Value) : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>

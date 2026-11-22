@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IPermissionQueryRepository, PermissionQueryRepository>();
         services.AddScoped<IScopeQueryRepository, ScopeQueryRepository>();
         services.AddScoped<IUserRoleQueryRepository, UserRoleQueryRepository>();
+        services.AddScoped<IRolePermissionQueryRepository, RolePermissionQueryRepository>();
     }
 
     private static void AddAuthenSettings(IServiceCollection services, SecurityOptions security)
