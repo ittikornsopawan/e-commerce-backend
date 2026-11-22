@@ -71,6 +71,7 @@ public sealed class InquiryRolePermissionApiTests(PostgresFixture postgres, WebA
         var (gb, ga) = (await GrantAsync(role, pb), await GrantAsync(role, pa, "INACTIVE"));
         var (lz, la) = (await GrantScopeAsync(ga, dz), await GrantScopeAsync(ga, da, "INACTIVE"));
         await GrantScopeAsync(ga, await PermissionScopeAsync(pa, await ScopeAsync()), "DELETED");
+        await GrantAsync(role, await PermissionAsync("c" + NewPermissionName()), "DELETED");
 
         var data = Data(await Status(await Get($"{Path}?roleId={role}", jwt), 200, "S10000", Success));
         Assert.Equal([ga, gb], data.Items.Select(i => i.RolePermissionId));
