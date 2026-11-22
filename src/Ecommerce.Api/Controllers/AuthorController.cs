@@ -6,6 +6,7 @@ using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
 using Ecommerce.Application.Features.Author.InquiryRolePermission;
+using Ecommerce.Application.Features.Author.CheckPermission;
 using Ecommerce.Application.Features.Author.InquiryUserPermission;
 using Ecommerce.Application.Features.Author.InquiryScope;
 using Ecommerce.Application.Features.Author.InquiryUserRole;
@@ -296,5 +297,18 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
             q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
 
         return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Permission Success", result.Value) : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> CheckQueryKeys = ["permission", "scope"];
+
+    /// <summary>Spec 17-check-permission: whether the caller's own token holds a permission and, when given, a scope; always 200 with allowed.</summary>
+    [HttpGet("check")]
+    public async Task<IActionResult> CheckPermission(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, CheckQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("Check.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new CheckPermissionQuery(VerifiedCaller.Of(this), q.GetValueOrDefault("permission"), q.GetValueOrDefault("scope")), cancellationToken);
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Check Permission Success", result.Value) : result.ToFailure(this);
     }
 }

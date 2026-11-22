@@ -18,23 +18,27 @@ public static class CallerClaims
         return ok;
     }
 
+    /// <summary>The <c>roles</c> claim of an already verified JWT (<see cref="TryGetNames"/>).</summary>
+    public static bool TryGetRoles(string verifiedJwt, out IReadOnlyList<string> roles) => TryGetNames(verifiedJwt, "roles", out roles);
+
     /// <summary>
-    /// The <c>roles</c> claim of an already verified JWT, read from its payload because the claims principal cannot tell
-    /// a missing claim from an empty array. Valid only as an array of unique non-empty strings (JWT payload of 2026-11-13).
+    /// A name-list claim (<c>roles</c>, <c>permissions</c>, <c>scopes</c>) of an already verified JWT, read from its payload because
+    /// the claims principal cannot tell a missing claim from an empty array. Valid only as an array of unique non-empty strings
+    /// (JWT payload of 2026-11-13).
     /// </summary>
-    public static bool TryGetRoles(string verifiedJwt, out IReadOnlyList<string> roles)
+    public static bool TryGetNames(string verifiedJwt, string claimName, out IReadOnlyList<string> names)
     {
-        roles = [];
+        names = [];
         var parts = verifiedJwt.Split('.');
         if (parts.Length != 3) return false;
 
         using var payload = JsonDocument.Parse(Base64UrlEncoder.Decode(parts[1]));
-        if (!payload.RootElement.TryGetProperty("roles", out var claim) || claim.ValueKind != JsonValueKind.Array) return false;
+        if (!payload.RootElement.TryGetProperty(claimName, out var claim) || claim.ValueKind != JsonValueKind.Array) return false;
 
-        var names = claim.EnumerateArray().Select(e => e.ValueKind == JsonValueKind.String ? e.GetString() : null).ToList();
-        if (names.Any(string.IsNullOrEmpty) || names.Distinct(StringComparer.Ordinal).Count() != names.Count) return false;
+        var values = claim.EnumerateArray().Select(e => e.ValueKind == JsonValueKind.String ? e.GetString() : null).ToList();
+        if (values.Any(string.IsNullOrEmpty) || values.Distinct(StringComparer.Ordinal).Count() != values.Count) return false;
 
-        roles = names!;
+        names = values!;
         return true;
     }
 }

@@ -45,3 +45,17 @@ public static partial class PermissionCode
     [System.Text.RegularExpressions.GeneratedRegex(@"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$")]
     private static partial System.Text.RegularExpressions.Regex Pattern();
 }
+
+/// <summary>The claim forms of spec 17: a permission name whose last dot is a colon, and a lower-case scope code with <c>:*</c>; at most 64.</summary>
+public static partial class ClaimForm
+{
+    public static bool IsPermission(string claim) => claim.Length <= 64 && PermissionPattern().IsMatch(claim);
+
+    public static bool IsScope(string claim) => claim.Length <= 64 && ScopePattern().IsMatch(claim);
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*:[a-z0-9_]+\z")]
+    private static partial System.Text.RegularExpressions.Regex PermissionPattern();
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[a-z][a-z0-9_]*:\*\z")]
+    private static partial System.Text.RegularExpressions.Regex ScopePattern();
+}

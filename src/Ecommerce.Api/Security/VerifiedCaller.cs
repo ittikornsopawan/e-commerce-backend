@@ -20,5 +20,7 @@ public static class VerifiedCaller
     }
 
     private static Caller Build(Guid userId, string jwt, DateTime expiresAt) =>
-        new(userId, jwt, expiresAt, CallerClaims.TryGetRoles(jwt, out var roles) ? roles : null);
+        new(userId, jwt, expiresAt, Names(jwt, "roles"), Names(jwt, "permissions"), Names(jwt, "scopes"));
+
+    private static IReadOnlyList<string>? Names(string jwt, string claim) => CallerClaims.TryGetNames(jwt, claim, out var names) ? names : null;
 }

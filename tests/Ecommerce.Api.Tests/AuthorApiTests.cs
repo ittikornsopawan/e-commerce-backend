@@ -32,12 +32,12 @@ public abstract class AuthorApiTests
             .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey)));
     }
 
-    /// <summary>A user with a stored ACTIVE access token whose JWT carries <paramref name="roles"/> (null omits the claim).</summary>
-    protected async Task<(Guid UserId, string Jwt)> CallerAsync(object? roles)
+    /// <summary>A user with a stored ACTIVE access token whose JWT carries these claims (null omits one).</summary>
+    protected async Task<(Guid UserId, string Jwt)> CallerAsync(object? roles, object? permissions = null, object? scopes = null)
     {
         await using var db = EcommerceDbContext.Create(Postgres.ConnectionString);
         var userId = await new RegistrationRepository(db, _protector).AddAsync(Registration(), CancellationToken.None);
-        var jwt = UpsertUserProfileApiTests.Jwt(userId.ToString(), roles: roles);
+        var jwt = UpsertUserProfileApiTests.Jwt(userId.ToString(), roles: roles, permissions: permissions, scopes: scopes);
         await ExecuteAsync(Postgres.ConnectionString,
             "INSERT INTO authen.t_user_access_token (created_by, user_id, session_id, token, expired_at) VALUES ('test', @u, @s, @t, @x)",
             ("u", userId), ("s", Guid.NewGuid()), ("t", SHA256.HashData(Encoding.UTF8.GetBytes(jwt))), ("x", DateTime.UtcNow.AddMinutes(15)));
