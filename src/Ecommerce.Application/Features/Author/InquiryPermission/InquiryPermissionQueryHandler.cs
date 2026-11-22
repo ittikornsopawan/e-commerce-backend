@@ -1,9 +1,5 @@
-using System.Data;
-using Ecommerce.Application.Abstractions;
 using Ecommerce.Application.Common;
-using Ecommerce.Application.Features.Authen.Common;
 using Ecommerce.Application.Features.Author.Common;
-using Ecommerce.Domain.Authen;
 using Ecommerce.Domain.Author;
 using Ecommerce.Domain.Author.Repositories;
 using Ecommerce.Shared.Cqrs;
@@ -13,40 +9,21 @@ using Ecommerce.Shared.Results;
 namespace Ecommerce.Application.Features.Author.InquiryPermission;
 
 /// <summary>
-/// Orchestrates spec 06 in one REPEATABLE READ READ ONLY snapshot with no lock and no write: the current credential (401),
-/// PLATFORM_ADMIN from the token (403) before any permission is read, <see cref="PagedRead"/>, then the page's links and
-/// their masters (skipped when there is no link).
+/// Spec 06 in the <see cref="AdminInquiry"/> frame: the shared paged read of non-DELETED permissions, then the page's links
+/// and their masters (skipped when there is no link).
 /// </summary>
-public sealed class InquiryPermissionQueryHandler(
-    IPermissionQueryRepository permissions,
-    CallerCredential credential,
-    ITransactionRunner transactions) : IQueryHandler<InquiryPermissionQuery, Page<PermissionItem>>
+public sealed class InquiryPermissionQueryHandler(IPermissionQueryRepository permissions, AdminInquiry inquiry)
+    : IQueryHandler<InquiryPermissionQuery, Page<PermissionItem>>
 {
-    public async Task<Result<Page<PermissionItem>>> HandleAsync(InquiryPermissionQuery request, CancellationToken cancellationToken)
+    public Task<Result<Page<PermissionItem>>> HandleAsync(InquiryPermissionQuery request, CancellationToken cancellationToken)
     {
-        // A missing or malformed roles claim is a bad token: 401 before any SQL.
-        if (request.Caller is not { Roles: not null } caller) return AuthenErrors.AccessTokenInvalid;
         var page = MasterInquiryRules.PageOf(request.PageIndex, request.PageSize);
         var filter = MasterInquiryRules.Filter(request.Id, request.Search, request.RowStatus);
-
-        try
-        {
-            return await transactions.RunAsync(IsolationLevel.RepeatableRead, ct => ReadAsync(caller, filter, page, ct), cancellationToken, readOnly: true);
-        }
-        catch (TimeoutException)
-        {
-            return CommonErrors.Timeout;
-        }
+        return inquiry.RunAsync(request.Caller, AuthorErrors.ReadPermissionsForbidden, ct => ReadAsync(filter, page, ct), cancellationToken);
     }
 
-    private async Task<Result<Page<PermissionItem>>> ReadAsync(Caller caller, MasterFilter filter, PageRequest page, CancellationToken ct)
+    private async Task<Page<PermissionItem>> ReadAsync(MasterFilter filter, PageRequest page, CancellationToken ct)
     {
-        var checkedCredential = await credential.CheckAsync(caller, ct);
-        if (checkedCredential.IsFailure) return Result.Failure<Page<PermissionItem>>(checkedCredential.FirstError);
-
-        // Permissions describe the security model: refused before the count, so the answer never shows whether one exists.
-        if (!caller.IsPlatformAdmin) return Result.Failure<Page<PermissionItem>>(AuthorErrors.ReadPermissionsForbidden);
-
         var rows = await PagedRead.ReadAsync(
             page, () => permissions.CountAsync(filter, ct), (offset, size) => permissions.ListAsync(filter, offset, size, ct), r => r);
         return await WithScopesAsync(rows, ct);

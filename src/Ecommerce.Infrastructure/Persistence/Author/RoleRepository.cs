@@ -30,6 +30,13 @@ internal sealed class RoleRepository(EcommerceDbContext db) : IRoleRepository
         return locked.ToDictionary(r => r.Id, r => r.Name);
     }
 
+    public async Task<LockedRole?> LockAnyAsync(Guid id, CancellationToken cancellationToken) =>
+        (await db.Roles
+            .Where(r => r.Id == id)
+            .ForUpdate()
+            .Select(r => new LockedRole(r.Name, r.RowStatus))
+            .ToListAsync(cancellationToken)).SingleOrDefault();
+
     public Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken cancellationToken) =>
         db.Roles.AnyAsync(r => r.Name == name && r.RowStatus != Deleted && (excludeId == null || r.Id != excludeId), cancellationToken);
 

@@ -12,6 +12,9 @@ public interface IRoleRepository
     /// <summary>QUERY - Lock existing roles (spec 02): the non-DELETED roles among the ids, locked FOR UPDATE in ascending id order; their stored names by id.</summary>
     Task<IReadOnlyDictionary<Guid, string>> LockNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 
+    /// <summary>QUERY - Lock the role (specs 10, 13): the role FOR UPDATE in any status; its name and status, or null.</summary>
+    Task<LockedRole?> LockAnyAsync(Guid id, CancellationToken cancellationToken);
+
     /// <summary>QUERY - Check duplicate name: another non-DELETED role with the exact name.</summary>
     Task<bool> NameTakenAsync(string name, Guid? excludeId, CancellationToken cancellationToken);
 

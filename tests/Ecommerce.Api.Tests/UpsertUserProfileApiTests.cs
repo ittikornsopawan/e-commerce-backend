@@ -40,11 +40,13 @@ public sealed class UpsertUserProfileApiTests : IClassFixture<WebApplicationFact
             .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey)));
     }
 
-    /// <summary>A JWT shaped like TokenService's (JsonWebTokenHandler); <paramref name="roles"/> null omits the claim.</summary>
-    internal static string Jwt(string sub, string key = Key, int expiresInMinutes = 15, object? roles = null)
+    /// <summary>A JWT shaped like TokenService's (JsonWebTokenHandler); a null <paramref name="roles"/>, <paramref name="permissions"/> or <paramref name="scopes"/> omits that claim.</summary>
+    internal static string Jwt(string sub, string key = Key, int expiresInMinutes = 15, object? roles = null, object? permissions = null, object? scopes = null)
     {
         var claims = new Dictionary<string, object> { ["sub"] = sub, ["jti"] = Guid.NewGuid().ToString() };
         if (roles is not null) claims["roles"] = roles;
+        if (permissions is not null) claims["permissions"] = permissions;
+        if (scopes is not null) claims["scopes"] = scopes;
         return new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false }.CreateToken(new SecurityTokenDescriptor
         {
             Issuer = "ecommerce",

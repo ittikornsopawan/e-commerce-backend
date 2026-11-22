@@ -32,12 +32,12 @@ public abstract class AuthorApiTests
             .UseSetting("Security:FieldEncryptionKey", Convert.ToBase64String(FieldKey)));
     }
 
-    /// <summary>A user with a stored ACTIVE access token whose JWT carries <paramref name="roles"/> (null omits the claim).</summary>
-    protected async Task<(Guid UserId, string Jwt)> CallerAsync(object? roles)
+    /// <summary>A user with a stored ACTIVE access token whose JWT carries these claims (null omits one).</summary>
+    protected async Task<(Guid UserId, string Jwt)> CallerAsync(object? roles, object? permissions = null, object? scopes = null)
     {
         await using var db = EcommerceDbContext.Create(Postgres.ConnectionString);
         var userId = await new RegistrationRepository(db, _protector).AddAsync(Registration(), CancellationToken.None);
-        var jwt = UpsertUserProfileApiTests.Jwt(userId.ToString(), roles: roles);
+        var jwt = UpsertUserProfileApiTests.Jwt(userId.ToString(), roles: roles, permissions: permissions, scopes: scopes);
         await ExecuteAsync(Postgres.ConnectionString,
             "INSERT INTO authen.t_user_access_token (created_by, user_id, session_id, token, expired_at) VALUES ('test', @u, @s, @t, @x)",
             ("u", userId), ("s", Guid.NewGuid()), ("t", SHA256.HashData(Encoding.UTF8.GetBytes(jwt))), ("x", DateTime.UtcNow.AddMinutes(15)));
@@ -122,6 +122,49 @@ public abstract class AuthorApiTests
             "INSERT INTO author.t_permission_scope (id, created_by, row_status, permission_id, scope_id) VALUES (@id, 'seed', @r, @p, @s)",
             ("id", id), ("r", rowStatus), ("p", permissionId), ("s", scopeId));
         return id;
+    }
+
+    /// <summary>A user (ACTIVE unless <paramref name="rowStatus"/> says otherwise) with no token; returns its id.</summary>
+    protected async Task<Guid> UserAsync(string rowStatus = "ACTIVE")
+    {
+        await using var db = EcommerceDbContext.Create(Postgres.ConnectionString);
+        var userId = await new RegistrationRepository(db, _protector).AddAsync(Registration(), CancellationToken.None);
+        if (rowStatus != "ACTIVE")
+            await ExecuteAsync(Postgres.ConnectionString, "UPDATE authen.m_user SET row_status = @r WHERE id = @u", ("r", rowStatus), ("u", userId));
+        return userId;
+    }
+
+    protected async Task<Guid> UserRoleAsync(Guid userId, Guid roleId, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.t_user_role (id, created_by, row_status, user_id, role_id) VALUES (@id, 'seed', @r, @u, @role)",
+            ("id", id), ("r", rowStatus), ("u", userId), ("role", roleId));
+        return id;
+    }
+
+    /// <summary>
+    /// The platform keeps at least one administrator (spec 10), and every user-role write checks it: this ACTIVE user with
+    /// an ACTIVE PLATFORM_ADMIN assignment is added once for the shared database and left in place.
+    /// </summary>
+    protected async Task<Guid> UserPermissionAsync(Guid userId, Guid permissionId, Guid? definition = null, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.t_user_permission (id, created_by, row_status, user_id, permission_id, permission_scope_id) VALUES (@id, 'seed', @r, @u, @p, @ps)",
+            ("id", id), ("r", rowStatus), ("u", userId), ("p", permissionId), ("ps", (object?)definition ?? DBNull.Value));
+        return id;
+    }
+
+    protected async Task<Guid> AnchorAdministratorAsync()
+    {
+        var role = await PlatformAdminRoleAsync();
+        await using var connection = await OpenAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT ur.id FROM author.t_user_role ur JOIN authen.m_user u ON u.id = ur.user_id WHERE ur.role_id = @r AND ur.row_status = 'ACTIVE' AND u.row_status = 'ACTIVE' ORDER BY ur.id LIMIT 1", connection);
+        command.Parameters.AddWithValue("r", role);
+        if (await command.ExecuteScalarAsync() is Guid existing) return existing;
+        return await UserRoleAsync(await UserAsync(), role);
     }
 
     /// <summary>One value of <paramref name="sql"/> with <c>@id</c>, read on a UTC session.</summary>

@@ -339,6 +339,8 @@ public sealed class UpsertPermissionBatchApiTests(PostgresFixture postgres, WebA
         private int _inserts;
         public Task<bool> LockAsync(Guid id, CancellationToken ct) => inner.LockAsync(id, ct);
         public Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => inner.LockManyAsync(ids, ct);
+        public Task<string?> LockAnyAsync(Guid id, CancellationToken ct) => inner.LockAnyAsync(id, ct);
+        public Task<IReadOnlyList<PermissionScopeDefinition>> DefinitionsAsync(Guid permissionId, CancellationToken ct) => inner.DefinitionsAsync(permissionId, ct);
         public Task<IReadOnlySet<Guid>> LockActiveScopesAsync(IReadOnlyCollection<Guid> scopeIds, CancellationToken ct) => inner.LockActiveScopesAsync(scopeIds, ct);
         public Task<IReadOnlyDictionary<Guid, LinkRow>> LockLinksAsync(IReadOnlyCollection<Guid> permissionIds, IReadOnlyCollection<Guid> linkIds, CancellationToken ct) =>
             inner.LockLinksAsync(permissionIds, linkIds, ct);

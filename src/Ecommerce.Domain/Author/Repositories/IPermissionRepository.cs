@@ -3,6 +3,9 @@ namespace Ecommerce.Domain.Author.Repositories;
 /// <summary>A permission master row as specs 04 and 05 write it.</summary>
 public sealed record PermissionValues(string Name, string Description, string RowStatus);
 
+/// <summary>A non-DELETED scope definition of the permission with its master's status (specs 13, 15).</summary>
+public sealed record PermissionScopeDefinition(Guid PermissionScopeId, Guid ScopeId, string RowStatus, string ScopeRowStatus);
+
 /// <summary>A locked scope link: the permission it belongs to and its immutable scope.</summary>
 public sealed record LinkRow(Guid PermissionId, Guid ScopeId);
 
@@ -11,6 +14,12 @@ public interface IPermissionRepository
 {
     /// <summary>QUERY - Check existing permission: the non-DELETED permission FOR UPDATE.</summary>
     Task<bool> LockAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>QUERY - Lock the permission (specs 13, 15): the permission FOR UPDATE in any status; its status, or null.</summary>
+    Task<string?> LockAnyAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>QUERY - Get the scopes of the permission (specs 13, 15): every non-DELETED definition, whatever its master's status.</summary>
+    Task<IReadOnlyList<PermissionScopeDefinition>> DefinitionsAsync(Guid permissionId, CancellationToken cancellationToken);
 
     /// <summary>QUERY - Lock existing permissions (spec 05): the non-DELETED permissions among the ids, FOR UPDATE in ascending id order.</summary>
     Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);

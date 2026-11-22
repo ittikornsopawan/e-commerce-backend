@@ -5,12 +5,22 @@ using Ecommerce.Api.Extensions;
 using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
+using Ecommerce.Application.Features.Author.InquiryRolePermission;
+using Ecommerce.Application.Features.Author.CheckPermission;
+using Ecommerce.Application.Features.Author.InquiryUserPermission;
+using Ecommerce.Application.Features.Author.InquiryScope;
+using Ecommerce.Application.Features.Author.InquiryUserRole;
+using Ecommerce.Application.Features.Author.Me;
 using Ecommerce.Application.Features.Author.Common;
 using Ecommerce.Application.Features.Author.UpsertPermission;
 using Ecommerce.Application.Features.Author.UpsertPermissionBatch;
 using Ecommerce.Application.Features.Author.UpsertRole;
 using Ecommerce.Application.Features.Author.UpsertRoleBatch;
+using Ecommerce.Application.Features.Author.UpsertRolePermission;
 using Ecommerce.Application.Features.Author.UpsertScope;
+using Ecommerce.Application.Features.Author.UpsertScopeBatch;
+using Ecommerce.Application.Features.Author.UpsertUserPermission;
+using Ecommerce.Application.Features.Author.UpsertUserRole;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
 using Ecommerce.Shared.Validation;
@@ -146,7 +156,159 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? this.ToUpsert(result.Value.Action, "Scope", new { scopeId = result.Value.ScopeId }) : result.ToFailure(this);
     }
 
+    /// <summary>Spec 08-upsert-scope-batch: 200 "Batch Upsert Scope Success", data.scopes holding each item's index, scopeId and action.</summary>
+    [HttpPost("scope/upsert/batch")]
+    public async Task<IActionResult> UpsertScopeBatch([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = ScopeBatchBody.TryRead(body, out var items);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("ScopeBatch.Shape", message)).ToFailure(this);
+
+        var scopes = items.Select(b => new ScopeBatchItem(b.String("id"), b.String("scope").Value, b.String("name").Value, b.String("description").Value, b.String("rowStatus"))).ToList();
+        var result = await dispatcher.SendAsync(new UpsertScopeBatchCommand(VerifiedCaller.Of(this), scopes), cancellationToken);
+        if (result.IsFailure) return result.ToFailure(this);
+
+        var data = new { scopes = result.Value.Scopes.Select(s => new { index = s.Index, scopeId = s.Written.ScopeId, action = s.Written.Action.ToString().ToUpperInvariant() }) };
+        return this.ToSuccess(StatusCodes.Status200OK, "Ok", "Batch Upsert Scope Success", data);
+    }
+
+    /// <summary>Spec 09-inquiry-scope: one page of non-DELETED scopes, sorted by code then id; platform administrators only.</summary>
+    [HttpGet("scope")]
+    public async Task<IActionResult> GetScopes(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, MasterQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("Scope.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryScopeQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"),
+            q.GetValueOrDefault("search"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Scope Success", result.Value) : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 10-upsert-user-role: insert 201, update and archive 200 (data.userRoleId), delete 204 with no body.</summary>
+    [HttpPost("user/role/upsert")]
+    public async Task<IActionResult> UpsertUserRole([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = JsonBody.TryRead(body, UserRoleBody.Fields, out var b, uniqueKeys: true);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("UserRole.Shape", message)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new UpsertUserRoleCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("userId").Value, b.String("roleId").Value, b.String("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToUpsert(result.Value.Action, "User Role", new { userRoleId = result.Value.UserRoleId }) : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> UserRoleQueryKeys = ["id", "userId", "roleId", "pageIndex", "pageSize", "rowStatus"];
+
+    /// <summary>Spec 11-inquiry-user-role: one page of non-DELETED assignments; platform administrators only.</summary>
+    [HttpGet("user/role")]
+    public async Task<IActionResult> GetUserRoles(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, UserRoleQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("UserRole.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryUserRoleQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("userId"), q.GetValueOrDefault("roleId"),
+            q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Role Success", result.Value) : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 12-me: the caller and the calling token's roles; no query parameter and no body.</summary>
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, NoKeys, out _) is { } shapeError)
+            return Result.Failure(Error.Validation("Me.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new MeQuery(VerifiedCaller.Of(this)), cancellationToken);
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Me Success", result.Value) : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> NoKeys = [];
+
+    /// <summary>Spec 13-upsert-role-permission: insert 201, update and archive 200 (data.rolePermissionId), delete 204 with no body.</summary>
+    [HttpPost("role/permission/upsert")]
+    public async Task<IActionResult> UpsertRolePermission([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = RolePermissionBody.TryRead(body, out var b, out var scopes);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("RolePermission.Shape", message)).ToFailure(this);
+
+        var links = scopes.Select(s => new ScopeLinkInput(s.String("id"), s.String("scopeId").Value, s.String("rowStatus"))).ToList();
+        var result = await dispatcher.SendAsync(new UpsertRolePermissionCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("roleId").Value, b.String("permissionId").Value, b.String("rowStatus"), links), cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToUpsert(result.Value.Action, "Role Permission", new { rolePermissionId = result.Value.RolePermissionId })
+            : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> RolePermissionQueryKeys = ["id", "roleId", "permissionId", "pageIndex", "pageSize", "rowStatus"];
+
+    /// <summary>Spec 14-inquiry-role-permission: one page of non-DELETED grants with their scopes; platform administrators only.</summary>
+    [HttpGet("role/permission")]
+    public async Task<IActionResult> GetRolePermissions(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, RolePermissionQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("RolePermission.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryRolePermissionQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("roleId"), q.GetValueOrDefault("permissionId"),
+            q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Role Permission Success", result.Value) : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 15-upsert-user-permission: insert 201, update and archive 200 (data.userPermissionId), delete 204 with no body.</summary>
+    [HttpPost("user/permission/upsert")]
+    public async Task<IActionResult> UpsertUserPermission([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = JsonBody.TryRead(body, UserPermissionBody.Fields, out var b, uniqueKeys: true);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("UserPermission.Shape", message)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new UpsertUserPermissionCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("userId").Value, b.String("permissionId").Value, b.String("scopeId"), b.String("rowStatus")),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToUpsert(result.Value.Action, "User Permission", new { userPermissionId = result.Value.UserPermissionId })
+            : result.ToFailure(this);
+    }
+
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
     private string? NoQuery() =>
         Request.Query.Count == 0 ? null : ValidationMessages.Combine(Request.Query.Keys.Select(ValidationMessages.UnknownField));
+
+    private static readonly HashSet<string> UserPermissionQueryKeys = ["id", "userId", "permissionId", "pageIndex", "pageSize", "rowStatus"];
+
+    /// <summary>Spec 16-inquiry-user-permission: one page of non-DELETED direct grants with their scope; platform administrators only.</summary>
+    [HttpGet("user/permission")]
+    public async Task<IActionResult> GetUserPermissions(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, UserPermissionQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("UserPermission.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryUserPermissionQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("userId"), q.GetValueOrDefault("permissionId"),
+            q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Permission Success", result.Value) : result.ToFailure(this);
+    }
+
+    private static readonly HashSet<string> CheckQueryKeys = ["permission", "scope"];
+
+    /// <summary>Spec 17-check-permission: whether the caller's own token holds a permission and, when given, a scope; always 200 with allowed.</summary>
+    [HttpGet("check")]
+    public async Task<IActionResult> CheckPermission(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, CheckQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("Check.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new CheckPermissionQuery(VerifiedCaller.Of(this), q.GetValueOrDefault("permission"), q.GetValueOrDefault("scope")), cancellationToken);
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Check Permission Success", result.Value) : result.ToFailure(this);
+    }
 }

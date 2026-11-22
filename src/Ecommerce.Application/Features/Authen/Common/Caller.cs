@@ -9,8 +9,11 @@ namespace Ecommerce.Application.Features.Authen.Common;
 /// <summary>
 /// The verified JWT of a protected call: its UUID sub, the exact presented token, its exp and its <c>roles</c> claim.
 /// <paramref name="Roles"/> is null when the claim is missing or malformed (the author specs answer 401); it may be empty.
+/// <paramref name="Permissions"/> and <paramref name="Scopes"/> are the flat claims spec 17 answers from, null the same way.
 /// </summary>
-public sealed record Caller(Guid UserId, string AccessToken, DateTime TokenExpiresAtUtc, IReadOnlyList<string>? Roles = null)
+public sealed record Caller(
+    Guid UserId, string AccessToken, DateTime TokenExpiresAtUtc, IReadOnlyList<string>? Roles = null,
+    IReadOnlyList<string>? Permissions = null, IReadOnlyList<string>? Scopes = null)
 {
     /// <summary>Exact, case-sensitive PLATFORM_ADMIN in the token's role snapshot; never read from the author tables.</summary>
     public bool IsPlatformAdmin => Roles?.Contains(RoleCode.PlatformAdmin, StringComparer.Ordinal) == true;

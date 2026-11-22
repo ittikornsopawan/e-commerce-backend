@@ -3,11 +3,14 @@ namespace Ecommerce.Domain.Author.Repositories;
 /// <summary>A scope master row as spec 07 writes it.</summary>
 public sealed record ScopeValues(string Scope, string Name, string Description, string RowStatus);
 
-/// <summary>The scope SQL of spec 07-upsert-scope, inside the caller's transaction.</summary>
+/// <summary>The scope SQL of specs 07-upsert-scope and 08-upsert-scope-batch, inside the caller's transaction.</summary>
 public interface IScopeRepository
 {
     /// <summary>QUERY - Check existing scope: the non-DELETED scope FOR UPDATE.</summary>
     Task<bool> LockAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>QUERY - Lock existing scopes (spec 08): the non-DELETED scopes among the ids, FOR UPDATE in ascending id order.</summary>
+    Task<IReadOnlySet<Guid>> LockManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 
     /// <summary>QUERY - Check duplicate scope: another non-DELETED scope with the exact code.</summary>
     Task<bool> CodeTakenAsync(string scope, Guid? excludeId, CancellationToken cancellationToken);
