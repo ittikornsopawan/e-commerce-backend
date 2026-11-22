@@ -15,12 +15,10 @@ public sealed class InquiryUserRoleQueryHandler(IUserRoleQueryRepository userRol
     public Task<Result<Page<UserRoleItem>>> HandleAsync(InquiryUserRoleQuery request, CancellationToken cancellationToken)
     {
         var page = MasterInquiryRules.PageOf(request.PageIndex, request.PageSize);
-        var filter = new UserRoleFilter(ParseOrNull(request.Id), ParseOrNull(request.UserId), ParseOrNull(request.RoleId), request.RowStatus);
+        var filter = new UserRoleFilter(GrantInquiryRules.ParseOrNull(request.Id), GrantInquiryRules.ParseOrNull(request.UserId), GrantInquiryRules.ParseOrNull(request.RoleId), request.RowStatus);
         return inquiry.RunAsync(request.Caller, AuthorErrors.ReadUserRolesForbidden, ct => PagedRead.ReadAsync(
             page, () => userRoles.CountAsync(filter, ct), (offset, size) => userRoles.ListAsync(filter, offset, size, ct), Map), cancellationToken);
     }
-
-    private static Guid? ParseOrNull(string? id) => id is null ? null : Guid.Parse(id);
 
     private static UserRoleItem Map(UserRoleListRow r) => new(r.Id, r.UserId, r.UserDisplayName, r.RoleId, r.RoleName, r.RowStatus);
 }
