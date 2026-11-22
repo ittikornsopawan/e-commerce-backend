@@ -17,6 +17,7 @@ using Ecommerce.Application.Features.Author.UpsertRoleBatch;
 using Ecommerce.Application.Features.Author.UpsertRolePermission;
 using Ecommerce.Application.Features.Author.UpsertScope;
 using Ecommerce.Application.Features.Author.UpsertScopeBatch;
+using Ecommerce.Application.Features.Author.UpsertUserPermission;
 using Ecommerce.Application.Features.Author.UpsertUserRole;
 using Ecommerce.Shared.Cqrs;
 using Ecommerce.Shared.Results;
@@ -257,6 +258,23 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
             q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
 
         return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry Role Permission Success", result.Value) : result.ToFailure(this);
+    }
+
+    /// <summary>Spec 15-upsert-user-permission: insert 201, update and archive 200 (data.userPermissionId), delete 204 with no body.</summary>
+    [HttpPost("user/permission/upsert")]
+    public async Task<IActionResult> UpsertUserPermission([FromBody] JsonElement body, CancellationToken cancellationToken)
+    {
+        var shapeError = JsonBody.TryRead(body, UserPermissionBody.Fields, out var b, uniqueKeys: true);
+        if ((NoQuery() ?? shapeError) is { } message)
+            return Result.Failure(Error.Validation("UserPermission.Shape", message)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new UpsertUserPermissionCommand(
+            VerifiedCaller.Of(this), b.String("id"), b.String("userId").Value, b.String("permissionId").Value, b.String("scopeId"), b.String("rowStatus")),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? this.ToUpsert(result.Value.Action, "User Permission", new { userPermissionId = result.Value.UserPermissionId })
+            : result.ToFailure(this);
     }
 
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>

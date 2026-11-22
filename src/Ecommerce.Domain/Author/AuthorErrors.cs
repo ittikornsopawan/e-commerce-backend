@@ -132,4 +132,18 @@ public static class AuthorErrors
     // Spec 14-inquiry-role-permission.
     public static readonly Error ReadRolePermissionsForbidden =
         Error.Of("Author.ReadRolePermissionsForbidden", "You do not have permission to read role permissions.", ErrorType.Forbidden, "E10009");
+
+    // Spec 15-upsert-user-permission (the 403 is AssignPermissionsForbidden of spec 13).
+    public static readonly Error UserPermissionNotFound = Error.Of("Author.UserPermissionNotFound", "User permission not found.", ErrorType.NotFound, "E10004");
+
+    public static readonly Error UserPermissionNotActive =
+        Error.Of("Author.UserPermissionNotActive", "User, permission or scope not found or not ACTIVE.", ErrorType.NotFound, "E10005");
+
+    public static readonly Error UserPermissionChanged =
+        Error.Validation("Author.UserPermissionChanged", "User Id, Permission Id and Scope Id cannot be changed.");
+
+    public static readonly Error ScopeIdRequired = Error.Validation("Author.ScopeIdRequired", "Scope Id is required for a permission that has scopes.");
+
+    public static readonly Error UserPermissionTaken =
+        Error.Of("Author.UserPermissionTaken", "The user already has this permission in this scope.", ErrorType.Conflict, "E10003");
 }

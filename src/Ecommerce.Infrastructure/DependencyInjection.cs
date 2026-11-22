@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRoleRepository, UserRoleRepository>();
         services.AddScoped<IUserLockRepository, UserLockRepository>();
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+        services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
         services.AddScoped<IRoleQueryRepository, RoleQueryRepository>();
         services.AddScoped<IPermissionQueryRepository, PermissionQueryRepository>();
         services.AddScoped<IScopeQueryRepository, ScopeQueryRepository>();
