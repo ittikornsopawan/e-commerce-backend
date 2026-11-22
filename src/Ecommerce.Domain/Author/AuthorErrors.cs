@@ -146,4 +146,7 @@ public static class AuthorErrors
 
     public static readonly Error UserPermissionTaken =
         Error.Of("Author.UserPermissionTaken", "The user already has this permission in this scope.", ErrorType.Conflict, "E10003");
+
+    public static readonly Error ReadUserPermissionsForbidden =
+        Error.Of("Author.ReadUserPermissionsForbidden", "You do not have permission to read user permissions.", ErrorType.Forbidden, "E10009");
 }

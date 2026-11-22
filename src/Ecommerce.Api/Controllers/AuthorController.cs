@@ -6,6 +6,7 @@ using Ecommerce.Api.Security;
 using Ecommerce.Application.Features.Author.InquiryPermission;
 using Ecommerce.Application.Features.Author.InquiryRole;
 using Ecommerce.Application.Features.Author.InquiryRolePermission;
+using Ecommerce.Application.Features.Author.InquiryUserPermission;
 using Ecommerce.Application.Features.Author.InquiryScope;
 using Ecommerce.Application.Features.Author.InquiryUserRole;
 using Ecommerce.Application.Features.Author.Me;
@@ -280,4 +281,20 @@ public sealed class AuthorController(IDispatcher dispatcher) : ControllerBase
     /// <summary>The author upserts take no query parameter: every key is unknown.</summary>
     private string? NoQuery() =>
         Request.Query.Count == 0 ? null : ValidationMessages.Combine(Request.Query.Keys.Select(ValidationMessages.UnknownField));
+
+    private static readonly HashSet<string> UserPermissionQueryKeys = ["id", "userId", "permissionId", "pageIndex", "pageSize", "rowStatus"];
+
+    /// <summary>Spec 16-inquiry-user-permission: one page of non-DELETED direct grants with their scope; platform administrators only.</summary>
+    [HttpGet("user/permission")]
+    public async Task<IActionResult> GetUserPermissions(CancellationToken cancellationToken)
+    {
+        if (QueryParameters.TryRead(Request, UserPermissionQueryKeys, out var q) is { } shapeError)
+            return Result.Failure(Error.Validation("UserPermission.Request", shapeError)).ToFailure(this);
+
+        var result = await dispatcher.SendAsync(new InquiryUserPermissionQuery(
+            VerifiedCaller.Of(this), q.GetValueOrDefault("id"), q.GetValueOrDefault("userId"), q.GetValueOrDefault("permissionId"),
+            q.GetValueOrDefault("pageIndex"), q.GetValueOrDefault("pageSize"), q.GetValueOrDefault("rowStatus")), cancellationToken);
+
+        return result.IsSuccess ? this.ToSuccess(StatusCodes.Status200OK, "Ok", "Inquiry User Permission Success", result.Value) : result.ToFailure(this);
+    }
 }

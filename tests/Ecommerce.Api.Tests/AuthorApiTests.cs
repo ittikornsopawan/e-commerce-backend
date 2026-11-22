@@ -147,6 +147,15 @@ public abstract class AuthorApiTests
     /// The platform keeps at least one administrator (spec 10), and every user-role write checks it: this ACTIVE user with
     /// an ACTIVE PLATFORM_ADMIN assignment is added once for the shared database and left in place.
     /// </summary>
+    protected async Task<Guid> UserPermissionAsync(Guid userId, Guid permissionId, Guid? definition = null, string rowStatus = "ACTIVE")
+    {
+        var id = Guid.NewGuid();
+        await ExecuteAsync(Postgres.ConnectionString,
+            "INSERT INTO author.t_user_permission (id, created_by, row_status, user_id, permission_id, permission_scope_id) VALUES (@id, 'seed', @r, @u, @p, @ps)",
+            ("id", id), ("r", rowStatus), ("u", userId), ("p", permissionId), ("ps", (object?)definition ?? DBNull.Value));
+        return id;
+    }
+
     protected async Task<Guid> AnchorAdministratorAsync()
     {
         var role = await PlatformAdminRoleAsync();

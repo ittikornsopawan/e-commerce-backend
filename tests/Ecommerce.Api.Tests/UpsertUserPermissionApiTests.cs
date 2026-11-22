@@ -55,21 +55,12 @@ public sealed class UpsertUserPermissionApiTests(PostgresFixture postgres, WebAp
     private const string AssignForbidden = "You do not have permission to assign permissions.";
     private const string NotActive = "User, permission or scope not found or not ACTIVE.";
 
-    private async Task<Guid> GrantAsync(Guid userId, Guid permissionId, Guid? definition = null, string rowStatus = "ACTIVE")
-    {
-        var id = Guid.NewGuid();
-        await ExecuteAsync(Postgres.ConnectionString,
-            "INSERT INTO author.t_user_permission (id, created_by, row_status, user_id, permission_id, permission_scope_id) VALUES (@id, 'seed', @r, @u, @p, @ps)",
-            ("id", id), ("r", rowStatus), ("u", userId), ("p", permissionId), ("ps", (object?)definition ?? DBNull.Value));
-        return id;
-    }
-
     [Fact]
     public async Task TC_UPERM_002_update_archive_reopen_and_delete()
     {
         var (adminId, jwt) = await AdminAsync();
         var (user, permission) = (await UserAsync(), await PermissionAsync(NewPermissionName()));
-        var id = await GrantAsync(user, permission);
+        var id = await UserPermissionAsync(user, permission);
 
         Assert.Equal(id, GrantId(await Status(await Send(jwt, Body(user, permission, id: id, rowStatus: "LOCKED")), 200, "S10000", "Update User Permission Success")));
         Assert.Equal(("LOCKED", adminId.ToString()), (await ColumnAsync(id, "row_status"), await ColumnAsync(id, "updated_by")));
@@ -127,7 +118,7 @@ public sealed class UpsertUserPermissionApiTests(PostgresFixture postgres, WebAp
 
         var other = await ScopeAsync();
         await PermissionScopeAsync(scoped, other);
-        var id = await GrantAsync(user, scoped, definition);
+        var id = await UserPermissionAsync(user, scoped, definition);
         await Status(await Send(jwt, Body(user, scoped, other, id)), 400, "E10001", "User Id, Permission Id and Scope Id cannot be changed.");
         await Status(await Send(jwt, Body(await UserAsync(), scoped, scope, id)), 400, "E10001", "User Id, Permission Id and Scope Id cannot be changed.");
     }
@@ -147,7 +138,7 @@ public sealed class UpsertUserPermissionApiTests(PostgresFixture postgres, WebAp
 
         // Reopening gives; taking away needs no ACTIVE row.
         var user = await UserAsync();
-        var held = await GrantAsync(user, scoped, definition, "INACTIVE");
+        var held = await UserPermissionAsync(user, scoped, definition, "INACTIVE");
         await Status(await Send(jwt, Body(user, scoped, scope, held)), 404, "E10005", NotActive);
         await Status(await Send(jwt, Body(user, scoped, scope, held, "DELETED")), 204, null, null);
     }
@@ -156,7 +147,7 @@ public sealed class UpsertUserPermissionApiTests(PostgresFixture postgres, WebAp
     public async Task TC_UPERM_007_only_a_platform_administrator_before_the_duplicate_check()
     {
         var (user, permission) = (await UserAsync(), await PermissionAsync(NewPermissionName()));
-        await GrantAsync(user, permission);
+        await UserPermissionAsync(user, permission);
         foreach (var roles in new object[] { Array.Empty<string>(), new[] { "CUSTOMER" }, new[] { "platform_admin" } })
             await Status(await Send((await CallerAsync(roles)).Jwt, Body(user, permission)), 403, "E10009", AssignForbidden);
     }
@@ -167,14 +158,14 @@ public sealed class UpsertUserPermissionApiTests(PostgresFixture postgres, WebAp
         var (_, jwt) = await AdminAsync();
         var user = await UserAsync();
         var plain = await PermissionAsync(NewPermissionName());
-        await GrantAsync(user, plain, rowStatus: "ARCHIVED");
+        await UserPermissionAsync(user, plain, rowStatus: "ARCHIVED");
         await Status(await Send(jwt, Body(user, plain)), 409, "E10003", "The user already has this permission in this scope.");
 
         // One grant per scope: a second scope of the same permission is a second grant.
         var (scoped, s1, s2) = (await PermissionAsync(NewPermissionName()), await ScopeAsync(), await ScopeAsync());
         var d1 = await PermissionScopeAsync(scoped, s1);
         await PermissionScopeAsync(scoped, s2);
-        await GrantAsync(user, scoped, d1);
+        await UserPermissionAsync(user, scoped, d1);
         await Status(await Send(jwt, Body(user, scoped, s1)), 409, "E10003", "The user already has this permission in this scope.");
         await Status(await Send(jwt, Body(user, scoped, s2)), 201, "S10000", "Insert User Permission Success");
     }
